@@ -1,27 +1,55 @@
-# Ignorar carpetas de caché de Python
+# Python cache and compiled files
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
 
-# Ignorar archivos de configuración sensibles
+# Sensitive configuration files
 app/config.py
+.env
+.env.*
 
-# Ignorar entornos virtuales
+# Virtual environments
 .venv/
 env/
 venv/
+ENV/
 
-# Ignorar archivos de log
+# Log files
 *.log
 
-# Ignorar archivos de base de datos locales
+# SQLite and other local databases
 *.sqlite3
+*.db
+instance/
 
-# Ignorar migraciones (opcional)
+# Flask/Django migration folders
 migrations/
 
-# Ignorar archivos de sistema
+# System files
 .DS_Store
 Thumbs.db
 
-# Ignorar configuración de DBeaver (si la usas)
+# DBeaver config
 *.dbeaver-data-sources.json
+
+# VSCode settings
+.vscode/
+
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints/
+
+# Pytest cache
+.pytest_cache/
+
+# Coverage reports
+htmlcov/
+.coverage
+
+# MyPy
+.mypy_cache/
+
+# Others
+*.bak
+*.swp
+*.swo
