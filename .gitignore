@@ -1,0 +1,27 @@
+# Ignorar carpetas de caché de Python
+__pycache__/
+*.py[cod]
+
+# Ignorar archivos de configuración sensibles
+app/config.py
+
+# Ignorar entornos virtuales
+.venv/
+env/
+venv/
+
+# Ignorar archivos de log
+*.log
+
+# Ignorar archivos de base de datos locales
+*.sqlite3
+
+# Ignorar migraciones (opcional)
+migrations/
+
+# Ignorar archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Ignorar configuración de DBeaver (si la usas)
+*.dbeaver-data-sources.json

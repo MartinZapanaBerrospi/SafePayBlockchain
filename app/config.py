@@ -5,5 +5,5 @@ class Config:
     # SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Cambia esto con tus propios parámetros de conexión de PostgreSQL
-    SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg://postgres:%40marzabe96@localhost:5432/safe_pay_db'
+    SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg://seteley:seteley@localhost:5434/safe_pay_db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
