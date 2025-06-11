@@ -1,5 +1,7 @@
 from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
 
 class Usuario(db.Model):
     __tablename__ = 'usuario'
@@ -9,6 +11,8 @@ class Usuario(db.Model):
     telefono = db.Column(db.Text)
     fecha_creacion = db.Column(db.DateTime, default=db.func.current_timestamp())
     contrasena_hash = db.Column(db.String(128), nullable=False)
+    clave_privada = db.Column(db.LargeBinary, nullable=True)  # Guardada cifrada o protegida
+    clave_publica = db.Column(db.LargeBinary, nullable=True)
     cuentas = db.relationship('Cuenta', backref='usuario', lazy=True)
     dispositivos = db.relationship('Dispositivo', backref='usuario', lazy=True)
     solicitudes_enviadas = db.relationship('SolicitudPago', foreign_keys='SolicitudPago.solicitante', backref='usuario_solicitante', lazy=True)
@@ -19,6 +23,25 @@ class Usuario(db.Model):
 
     def check_contrasena(self, contrasena):
         return check_password_hash(self.contrasena_hash, contrasena)
+
+    def generar_claves(self):
+        # Genera un par de claves RSA y las almacena en el usuario
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048
+        )
+        private_bytes = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+        public_key = private_key.public_key()
+        public_bytes = public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+        self.clave_privada = private_bytes
+        self.clave_publica = public_bytes
 
 class Cuenta(db.Model):
     __tablename__ = 'cuenta'
