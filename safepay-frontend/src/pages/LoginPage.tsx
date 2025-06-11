@@ -12,9 +12,9 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     try {
-      await login(nombre, contrasena);
-      // Guarda el nombre de usuario en localStorage para mostrarlo en la página de inicio
-      localStorage.setItem('userData', JSON.stringify({ nombre }));
+      const res = await login(nombre, contrasena);
+      // Guarda el nombre de usuario y el id_usuario en localStorage para mostrarlo en la página de inicio y filtrar solicitudes
+      localStorage.setItem('userData', JSON.stringify({ nombre, id_usuario: res.id_usuario }));
       navigate('/inicio'); // Redirige a la página de bienvenida
     } catch (err: any) {
       setError(err.message || 'Error al iniciar sesión');
