@@ -13,6 +13,8 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     from . import models
-    from .routes import bp
-    app.register_blueprint(bp)
+    from .crud import bp as crud_bp
+    app.register_blueprint(crud_bp, url_prefix='/api', name='crud_api')
+    from .routes import bp as routes_bp
+    app.register_blueprint(routes_bp, url_prefix='/api', name='routes_api')
     return app

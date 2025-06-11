@@ -7,14 +7,24 @@ bp = Blueprint('api', __name__)
 @bp.route('/usuarios', methods=['POST'])
 def crear_usuario():
     data = request.json
+    nombre = data.get('nombre')
+    correo = data.get('correo')
+    telefono = data.get('telefono')
+    contrasena = data.get('contrasena')
+    if not nombre or not correo or not contrasena:
+        return jsonify({'mensaje': 'Faltan datos obligatorios'}), 400
+    if Usuario.query.filter_by(nombre=nombre).first() or Usuario.query.filter_by(correo=correo).first():
+        return jsonify({'mensaje': 'El usuario o correo ya existe'}), 400
     usuario = Usuario(
-        nombre=data.get('nombre'),
-        correo=data.get('correo'),
-        telefono=data.get('telefono')
+        nombre=nombre,
+        correo=correo,
+        telefono=telefono
     )
+    usuario.set_contrasena(contrasena)
+    usuario.generar_claves()
     db.session.add(usuario)
     db.session.commit()
-    return jsonify({'id_usuario': usuario.id_usuario}), 201
+    return jsonify({'mensaje': 'Usuario creado correctamente'}), 201
 
 @bp.route('/usuarios', methods=['GET'])
 def listar_usuarios():
