@@ -12,7 +12,7 @@ class Usuario(db.Model):
     telefono = db.Column(db.Text)
     fecha_creacion = db.Column(db.DateTime, default=db.func.current_timestamp())
     contrasena_hash = db.Column(db.String(128), nullable=False)
-    clave_privada = db.Column(db.LargeBinary, nullable=True)  # Guardada cifrada o protegida
+    clave_privada = db.Column(db.Text, nullable=True)  # Guardada como string PEM o base64
     clave_publica = db.Column(db.LargeBinary, nullable=True)
     cuentas = db.relationship('Cuenta', backref='usuario', lazy=True)
     dispositivos = db.relationship('Dispositivo', backref='usuario', lazy=True)

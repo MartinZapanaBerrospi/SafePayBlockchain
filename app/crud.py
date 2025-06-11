@@ -40,7 +40,7 @@ def crear_usuario():
     key = kdf.derive(contrasena.encode())
     iv = os.urandom(12)  # AES-GCM standard IV size
     aesgcm = AESGCM(key)
-    priv_bytes = usuario.clave_privada
+    priv_bytes = usuario.clave_privada.encode() if isinstance(usuario.clave_privada, str) else usuario.clave_privada
     priv_encrypted = aesgcm.encrypt(iv, priv_bytes, None)  # ciphertext + tag
     # Codificar salt+iv+clave cifrada (incluye tag) en base64 para entregar al usuario
     encrypted_package = base64.urlsafe_b64encode(salt + iv + priv_encrypted).decode()

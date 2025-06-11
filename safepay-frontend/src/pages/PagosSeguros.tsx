@@ -100,6 +100,9 @@ export default function PagosSeguros() {
         const salt = data.slice(0, 16);
         const iv = data.slice(16, 28); // 12 bytes
         const ciphertextAndTag = data.slice(28); // ciphertext + tag (últimos 16 bytes)
+        console.log('Salt (base64):', btoa(String.fromCharCode(...salt)));
+        console.log('IV (base64):', btoa(String.fromCharCode(...iv)));
+        console.log('Ciphertext+Tag (base64):', btoa(String.fromCharCode(...ciphertextAndTag)));
         // Derivar clave
         const keyMaterial = await window.crypto.subtle.importKey(
           'raw',
@@ -120,13 +123,24 @@ export default function PagosSeguros() {
           false,
           ['decrypt']
         );
+        console.log('Key derived (CryptoKey):', key);
         // Descifrar (WebCrypto espera tag al final del ciphertext)
-        const decrypted = await window.crypto.subtle.decrypt(
-          { name: 'AES-GCM', iv },
-          key,
-          ciphertextAndTag
-        );
-        return new Uint8Array(decrypted);
+        let decrypted;
+        try {
+          decrypted = await window.crypto.subtle.decrypt(
+            { name: 'AES-GCM', iv },
+            key,
+            ciphertextAndTag
+          );
+        } catch (e) {
+          console.error('Error en decrypt:', e);
+          throw e;
+        }
+        const privBytes = new Uint8Array(decrypted);
+        // Log clave privada descifrada (PEM)
+        const pemString = new TextDecoder().decode(privBytes);
+        console.log('Clave privada descifrada (PEM):\n', pemString);
+        return privBytes;
       };
       // Descifrar y convertir a PEM
       const privKeyBytes = await descifrarClavePrivada(claveCifrada, clavePago);
@@ -136,14 +150,22 @@ export default function PagosSeguros() {
       const pemHeader = '-----BEGIN PRIVATE KEY-----';
       const pemFooter = '-----END PRIVATE KEY-----';
       const pemContents = pem.replace(pemHeader, '').replace(pemFooter, '').replace(/\s/g, '');
+      console.log('PEM limpio (base64, sin headers ni espacios):', pemContents);
       const binaryDer = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
-      const privateKey = await window.crypto.subtle.importKey(
-        'pkcs8',
-        binaryDer.buffer,
-        { name: 'RSASSA-PSS', hash: 'SHA-256' },
-        false,
-        ['sign']
-      );
+      console.log('DER length:', binaryDer.length, 'Primeros bytes:', binaryDer.slice(0, 16));
+      let privateKey;
+      try {
+        privateKey = await window.crypto.subtle.importKey(
+          'pkcs8',
+          binaryDer.buffer,
+          { name: 'RSASSA-PSS', hash: 'SHA-256' },
+          false,
+          ['sign']
+        );
+      } catch (e) {
+        console.error('Error en importKey:', e);
+        throw e;
+      }
       // Construir mensaje a firmar
       const mensaje = `${modal.solicitud.id_solicitud}:${cuentaSeleccionada}:${modal.solicitud.monto}`;
       const encoder = new TextEncoder();
