@@ -1,0 +1,265 @@
+from flask import Blueprint, request, jsonify
+from .models import db, Usuario, Cuenta, Transaccion, SolicitudPago, Dispositivo
+
+bp = Blueprint('api', __name__)
+
+# --- USUARIOS ---
+@bp.route('/usuarios', methods=['POST'])
+def crear_usuario():
+    data = request.json
+    usuario = Usuario(
+        nombre=data.get('nombre'),
+        correo=data.get('correo'),
+        telefono=data.get('telefono')
+    )
+    db.session.add(usuario)
+    db.session.commit()
+    return jsonify({'id_usuario': usuario.id_usuario}), 201
+
+@bp.route('/usuarios', methods=['GET'])
+def listar_usuarios():
+    usuarios = Usuario.query.all()
+    return jsonify([{
+        'id_usuario': u.id_usuario,
+        'nombre': u.nombre,
+        'correo': u.correo,
+        'telefono': u.telefono,
+        'fecha_creacion': u.fecha_creacion
+    } for u in usuarios])
+
+@bp.route('/usuarios/<int:id_usuario>', methods=['GET'])
+def obtener_usuario(id_usuario):
+    usuario = Usuario.query.get_or_404(id_usuario)
+    return jsonify({
+        'id_usuario': usuario.id_usuario,
+        'nombre': usuario.nombre,
+        'correo': usuario.correo,
+        'telefono': usuario.telefono,
+        'fecha_creacion': usuario.fecha_creacion
+    })
+
+@bp.route('/usuarios/<int:id_usuario>', methods=['PUT'])
+def actualizar_usuario(id_usuario):
+    usuario = Usuario.query.get_or_404(id_usuario)
+    data = request.json
+    usuario.nombre = data.get('nombre', usuario.nombre)
+    usuario.correo = data.get('correo', usuario.correo)
+    usuario.telefono = data.get('telefono', usuario.telefono)
+    db.session.commit()
+    return jsonify({'mensaje': 'Usuario actualizado'})
+
+@bp.route('/usuarios/<int:id_usuario>', methods=['DELETE'])
+def eliminar_usuario(id_usuario):
+    usuario = Usuario.query.get_or_404(id_usuario)
+    db.session.delete(usuario)
+    db.session.commit()
+    return jsonify({'mensaje': 'Usuario eliminado'})
+
+# --- CUENTAS ---
+@bp.route('/cuentas', methods=['POST'])
+def crear_cuenta():
+    data = request.json
+    cuenta = Cuenta(
+        id_usuario=data.get('id_usuario'),
+        saldo=data.get('saldo', 0.00),
+        moneda=data.get('moneda', 'USD'),
+        activa=data.get('activa', True)
+    )
+    db.session.add(cuenta)
+    db.session.commit()
+    return jsonify({'id_cuenta': cuenta.id_cuenta}), 201
+
+@bp.route('/cuentas', methods=['GET'])
+def listar_cuentas():
+    cuentas = Cuenta.query.all()
+    return jsonify([{
+        'id_cuenta': c.id_cuenta,
+        'id_usuario': c.id_usuario,
+        'saldo': float(c.saldo),
+        'moneda': c.moneda,
+        'activa': c.activa
+    } for c in cuentas])
+
+@bp.route('/cuentas/<int:id_cuenta>', methods=['GET'])
+def obtener_cuenta(id_cuenta):
+    cuenta = Cuenta.query.get_or_404(id_cuenta)
+    return jsonify({
+        'id_cuenta': cuenta.id_cuenta,
+        'id_usuario': cuenta.id_usuario,
+        'saldo': float(cuenta.saldo),
+        'moneda': cuenta.moneda,
+        'activa': cuenta.activa
+    })
+
+@bp.route('/cuentas/<int:id_cuenta>', methods=['PUT'])
+def actualizar_cuenta(id_cuenta):
+    cuenta = Cuenta.query.get_or_404(id_cuenta)
+    data = request.json
+    cuenta.saldo = data.get('saldo', cuenta.saldo)
+    cuenta.moneda = data.get('moneda', cuenta.moneda)
+    cuenta.activa = data.get('activa', cuenta.activa)
+    db.session.commit()
+    return jsonify({'mensaje': 'Cuenta actualizada'})
+
+@bp.route('/cuentas/<int:id_cuenta>', methods=['DELETE'])
+def eliminar_cuenta(id_cuenta):
+    cuenta = Cuenta.query.get_or_404(id_cuenta)
+    db.session.delete(cuenta)
+    db.session.commit()
+    return jsonify({'mensaje': 'Cuenta eliminada'})
+
+# --- TRANSACCIONES ---
+@bp.route('/transacciones', methods=['POST'])
+def crear_transaccion():
+    data = request.json
+    transaccion = Transaccion(
+        cuenta_origen=data.get('cuenta_origen'),
+        cuenta_destino=data.get('cuenta_destino'),
+        monto=data.get('monto'),
+        descripcion=data.get('descripcion'),
+        estado=data.get('estado', 'completada')
+    )
+    db.session.add(transaccion)
+    db.session.commit()
+    return jsonify({'id_transaccion': transaccion.id_transaccion}), 201
+
+@bp.route('/transacciones', methods=['GET'])
+def listar_transacciones():
+    transacciones = Transaccion.query.all()
+    return jsonify([{
+        'id_transaccion': t.id_transaccion,
+        'cuenta_origen': t.cuenta_origen,
+        'cuenta_destino': t.cuenta_destino,
+        'monto': float(t.monto),
+        'descripcion': t.descripcion,
+        'fecha': t.fecha,
+        'estado': t.estado
+    } for t in transacciones])
+
+@bp.route('/transacciones/<int:id_transaccion>', methods=['GET'])
+def obtener_transaccion(id_transaccion):
+    t = Transaccion.query.get_or_404(id_transaccion)
+    return jsonify({
+        'id_transaccion': t.id_transaccion,
+        'cuenta_origen': t.cuenta_origen,
+        'cuenta_destino': t.cuenta_destino,
+        'monto': float(t.monto),
+        'descripcion': t.descripcion,
+        'fecha': t.fecha,
+        'estado': t.estado
+    })
+
+@bp.route('/transacciones/<int:id_transaccion>', methods=['DELETE'])
+def eliminar_transaccion(id_transaccion):
+    t = Transaccion.query.get_or_404(id_transaccion)
+    db.session.delete(t)
+    db.session.commit()
+    return jsonify({'mensaje': 'Transacción eliminada'})
+
+# --- SOLICITUDES DE PAGO ---
+@bp.route('/solicitudes', methods=['POST'])
+def crear_solicitud():
+    data = request.json
+    solicitud = SolicitudPago(
+        solicitante=data.get('solicitante'),
+        destinatario=data.get('destinatario'),
+        monto=data.get('monto'),
+        mensaje=data.get('mensaje'),
+        estado=data.get('estado', 'pendiente')
+    )
+    db.session.add(solicitud)
+    db.session.commit()
+    return jsonify({'id_solicitud': solicitud.id_solicitud}), 201
+
+@bp.route('/solicitudes', methods=['GET'])
+def listar_solicitudes():
+    solicitudes = SolicitudPago.query.all()
+    return jsonify([{
+        'id_solicitud': s.id_solicitud,
+        'solicitante': s.solicitante,
+        'destinatario': s.destinatario,
+        'monto': float(s.monto),
+        'mensaje': s.mensaje,
+        'estado': s.estado,
+        'fecha_solicitud': s.fecha_solicitud
+    } for s in solicitudes])
+
+@bp.route('/solicitudes/<int:id_solicitud>', methods=['GET'])
+def obtener_solicitud(id_solicitud):
+    s = SolicitudPago.query.get_or_404(id_solicitud)
+    return jsonify({
+        'id_solicitud': s.id_solicitud,
+        'solicitante': s.solicitante,
+        'destinatario': s.destinatario,
+        'monto': float(s.monto),
+        'mensaje': s.mensaje,
+        'estado': s.estado,
+        'fecha_solicitud': s.fecha_solicitud
+    })
+
+@bp.route('/solicitudes/<int:id_solicitud>', methods=['PUT'])
+def actualizar_solicitud(id_solicitud):
+    s = SolicitudPago.query.get_or_404(id_solicitud)
+    data = request.json
+    s.estado = data.get('estado', s.estado)
+    s.mensaje = data.get('mensaje', s.mensaje)
+    db.session.commit()
+    return jsonify({'mensaje': 'Solicitud actualizada'})
+
+@bp.route('/solicitudes/<int:id_solicitud>', methods=['DELETE'])
+def eliminar_solicitud(id_solicitud):
+    s = SolicitudPago.query.get_or_404(id_solicitud)
+    db.session.delete(s)
+    db.session.commit()
+    return jsonify({'mensaje': 'Solicitud eliminada'})
+
+# --- DISPOSITIVOS ---
+@bp.route('/dispositivos', methods=['POST'])
+def crear_dispositivo():
+    data = request.json
+    dispositivo = Dispositivo(
+        id_usuario=data.get('id_usuario'),
+        nombre=data.get('nombre'),
+        ip_registro=data.get('ip_registro')
+    )
+    db.session.add(dispositivo)
+    db.session.commit()
+    return jsonify({'id_dispositivo': dispositivo.id_dispositivo}), 201
+
+@bp.route('/dispositivos', methods=['GET'])
+def listar_dispositivos():
+    dispositivos = Dispositivo.query.all()
+    return jsonify([{
+        'id_dispositivo': d.id_dispositivo,
+        'id_usuario': d.id_usuario,
+        'nombre': d.nombre,
+        'ip_registro': d.ip_registro,
+        'ultimo_acceso': d.ultimo_acceso
+    } for d in dispositivos])
+
+@bp.route('/dispositivos/<int:id_dispositivo>', methods=['GET'])
+def obtener_dispositivo(id_dispositivo):
+    d = Dispositivo.query.get_or_404(id_dispositivo)
+    return jsonify({
+        'id_dispositivo': d.id_dispositivo,
+        'id_usuario': d.id_usuario,
+        'nombre': d.nombre,
+        'ip_registro': d.ip_registro,
+        'ultimo_acceso': d.ultimo_acceso
+    })
+
+@bp.route('/dispositivos/<int:id_dispositivo>', methods=['PUT'])
+def actualizar_dispositivo(id_dispositivo):
+    d = Dispositivo.query.get_or_404(id_dispositivo)
+    data = request.json
+    d.nombre = data.get('nombre', d.nombre)
+    d.ip_registro = data.get('ip_registro', d.ip_registro)
+    db.session.commit()
+    return jsonify({'mensaje': 'Dispositivo actualizado'})
+
+@bp.route('/dispositivos/<int:id_dispositivo>', methods=['DELETE'])
+def eliminar_dispositivo(id_dispositivo):
+    d = Dispositivo.query.get_or_404(id_dispositivo)
+    db.session.delete(d)
+    db.session.commit()
+    return jsonify({'mensaje': 'Dispositivo eliminado'})

@@ -1,4 +1,5 @@
 from app import db
+from werkzeug.security import generate_password_hash, check_password_hash
 
 class Usuario(db.Model):
     __tablename__ = 'usuario'
@@ -7,10 +8,17 @@ class Usuario(db.Model):
     correo = db.Column(db.Text, unique=True, nullable=False)
     telefono = db.Column(db.Text)
     fecha_creacion = db.Column(db.DateTime, default=db.func.current_timestamp())
+    contrasena_hash = db.Column(db.String(128), nullable=False)
     cuentas = db.relationship('Cuenta', backref='usuario', lazy=True)
     dispositivos = db.relationship('Dispositivo', backref='usuario', lazy=True)
     solicitudes_enviadas = db.relationship('SolicitudPago', foreign_keys='SolicitudPago.solicitante', backref='usuario_solicitante', lazy=True)
     solicitudes_recibidas = db.relationship('SolicitudPago', foreign_keys='SolicitudPago.destinatario', backref='usuario_destinatario', lazy=True)
+
+    def set_contrasena(self, contrasena):
+        self.contrasena_hash = generate_password_hash(contrasena)
+
+    def check_contrasena(self, contrasena):
+        return check_password_hash(self.contrasena_hash, contrasena)
 
 class Cuenta(db.Model):
     __tablename__ = 'cuenta'
