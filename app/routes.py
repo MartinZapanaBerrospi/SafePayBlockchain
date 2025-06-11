@@ -35,39 +35,46 @@ def login():
 def pagar_solicitud(id_solicitud):
     data = request.json
     id_cuenta_origen = data.get('id_cuenta_origen')
+    descripcion = data.get('descripcion')
     if not id_cuenta_origen:
         return jsonify({'mensaje': 'Debe indicar la cuenta de origen'}), 400
 
     solicitud = SolicitudPago.query.get_or_404(id_solicitud)
     cuenta_origen = Cuenta.query.get(id_cuenta_origen)
-    cuenta_destino = Cuenta.query.filter_by(id_usuario=solicitud.destinatario, activa=True).first()
+    cuenta_destino = Cuenta.query.filter_by(id_usuario=solicitud.solicitante, activa=True).first()
 
     if not cuenta_origen:
         return jsonify({'mensaje': 'Cuenta de origen no encontrada'}), 404
     if not cuenta_destino:
-        return jsonify({'mensaje': 'Cuenta de destino no encontrada para el destinatario'}), 404
+        return jsonify({'mensaje': 'Cuenta de destino no encontrada para el solicitante'}), 404
     if not cuenta_origen.activa:
         return jsonify({'mensaje': 'La cuenta de origen no está activa'}), 400
     if not cuenta_destino.activa:
         return jsonify({'mensaje': 'La cuenta de destino no está activa'}), 400
-    if cuenta_origen.saldo < solicitud.monto:
+    if float(cuenta_origen.saldo) < float(solicitud.monto):
         return jsonify({'mensaje': 'Saldo insuficiente en la cuenta de origen'}), 400
     if solicitud.estado != 'pendiente':
         return jsonify({'mensaje': 'La solicitud ya fue procesada'}), 400
 
-    # Realizar el pago
-    cuenta_origen.saldo -= solicitud.monto
-    cuenta_destino.saldo += solicitud.monto
+    # Realizar el pago y actualizar saldos
+    nuevo_saldo = float(cuenta_origen.saldo) - float(solicitud.monto)
+    cuenta_origen.saldo = nuevo_saldo
+    cuenta_destino.saldo = float(cuenta_destino.saldo) + float(solicitud.monto)
     solicitud.estado = 'aceptada'
-    db.session.add(Transaccion(
+    transaccion = Transaccion(
         cuenta_origen=cuenta_origen.id_cuenta,
         cuenta_destino=cuenta_destino.id_cuenta,
         monto=solicitud.monto,
-        descripcion=f'Pago de solicitud #{solicitud.id_solicitud}',
+        descripcion=descripcion or f'Pago de solicitud #{solicitud.id_solicitud}',
         estado='completada'
-    ))
+    )
+    db.session.add(transaccion)
     db.session.commit()
-    return jsonify({'mensaje': 'Pago realizado y transacción registrada'}), 200
+    return jsonify({
+        'mensaje': 'Pago realizado y transacción registrada',
+        'nuevo_saldo': str(nuevo_saldo),
+        'id_cuenta': cuenta_origen.id_cuenta
+    }), 200
 
 
 # --- PAGAR SOLICITUD CON FIRMA DIGITAL ---

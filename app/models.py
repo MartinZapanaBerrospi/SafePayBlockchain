@@ -2,6 +2,7 @@ from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
+from flask import request, jsonify, Blueprint
 
 class Usuario(db.Model):
     __tablename__ = 'usuario'
@@ -26,6 +27,10 @@ class Usuario(db.Model):
 
     def generar_claves(self):
         # Genera un par de claves RSA y las almacena en el usuario
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048
+        )
         private_key = rsa.generate_private_key(
             public_exponent=65537,
             key_size=2048
@@ -80,3 +85,7 @@ class Dispositivo(db.Model):
     nombre = db.Column(db.Text)
     ip_registro = db.Column(db.String(50))  # SQLAlchemy no tiene tipo INET, se usa String
     ultimo_acceso = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+pagos_bp = Blueprint('pagos', __name__)
+
+# El endpoint de pago de solicitud ha sido migrado a routes.py

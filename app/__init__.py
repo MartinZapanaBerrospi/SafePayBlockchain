@@ -17,4 +17,6 @@ def create_app():
     app.register_blueprint(crud_bp, url_prefix='/api', name='crud_api')
     from .routes import bp as routes_bp
     app.register_blueprint(routes_bp, url_prefix='/api', name='routes_api')
+    from .models import pagos_bp
+    app.register_blueprint(pagos_bp)
     return app

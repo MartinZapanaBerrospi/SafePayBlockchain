@@ -65,6 +65,12 @@ def eliminar_usuario(id_usuario):
     db.session.commit()
     return jsonify({'mensaje': 'Usuario eliminado'})
 
+@bp.route('/usuarios/nombres', methods=['POST'])
+def obtener_nombres_usuarios():
+    ids = request.json.get('ids', [])
+    usuarios = Usuario.query.filter(Usuario.id_usuario.in_(ids)).all()
+    return jsonify({str(u.id_usuario): u.nombre for u in usuarios})
+
 # --- CUENTAS ---
 @bp.route('/cuentas', methods=['POST'])
 def crear_cuenta():
