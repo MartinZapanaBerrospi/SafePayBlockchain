@@ -1,5 +1,10 @@
 from flask import Blueprint, request, jsonify
 from .models import db, Usuario, Cuenta, Transaccion, SolicitudPago, Dispositivo
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+import os, base64
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 bp = Blueprint('api', __name__)
 
@@ -24,7 +29,22 @@ def crear_usuario():
     usuario.generar_claves()
     db.session.add(usuario)
     db.session.commit()
-    return jsonify({'mensaje': 'Usuario creado correctamente'}), 201
+    # Cifrar la clave privada con la contraseña del usuario
+    salt = os.urandom(16)
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=100_000,
+    )
+    key = kdf.derive(contrasena.encode())
+    iv = os.urandom(12)  # AES-GCM standard IV size
+    aesgcm = AESGCM(key)
+    priv_bytes = usuario.clave_privada
+    priv_encrypted = aesgcm.encrypt(iv, priv_bytes, None)  # ciphertext + tag
+    # Codificar salt+iv+clave cifrada (incluye tag) en base64 para entregar al usuario
+    encrypted_package = base64.urlsafe_b64encode(salt + iv + priv_encrypted).decode()
+    return jsonify({'mensaje': 'Usuario creado correctamente', 'clave_privada_cifrada': encrypted_package}), 201
 
 @bp.route('/usuarios', methods=['GET'])
 def listar_usuarios():

@@ -20,6 +20,9 @@ export default function PagosSeguros() {
   const [cuentaSeleccionada, setCuentaSeleccionada] = useState<number | null>(null);
   const [descripcion, setDescripcion] = useState('');
   const [pagoExitoso, setPagoExitoso] = useState<any>(null);
+  const [claveCifrada, setClaveCifrada] = useState('');
+  const [clavePago, setClavePago] = useState('');
+  const [firmaError, setFirmaError] = useState<string>('');
 
   useEffect(() => {
     const userData = localStorage.getItem('userData');
@@ -81,29 +84,96 @@ export default function PagosSeguros() {
   };
 
   const completarPago = async () => {
+    setFirmaError('');
     if (!modal.solicitud || !cuentaSeleccionada) return;
+    if (!claveCifrada || !clavePago) {
+      setFirmaError('Debes pegar tu clave privada cifrada y la contraseña para firmar el pago.');
+      return;
+    }
     try {
-      const res = await fetch(`/api/solicitudes/${modal.solicitud.id_solicitud}/pagar`, {
+      // Descifrar clave privada cifrada (AES-GCM, PBKDF2, base64)
+      const descifrarClavePrivada = async (cifrada: string, password: string) => {
+        // Normalizar base64-url: reemplazar -/_ y agregar padding
+        let b64 = cifrada.replace(/-/g, '+').replace(/_/g, '/');
+        while (b64.length % 4 !== 0) b64 += '=';
+        const data = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+        const salt = data.slice(0, 16);
+        const iv = data.slice(16, 28); // 12 bytes
+        const ciphertextAndTag = data.slice(28); // ciphertext + tag (últimos 16 bytes)
+        // Derivar clave
+        const keyMaterial = await window.crypto.subtle.importKey(
+          'raw',
+          new TextEncoder().encode(password),
+          { name: 'PBKDF2' },
+          false,
+          ['deriveKey']
+        );
+        const key = await window.crypto.subtle.deriveKey(
+          {
+            name: 'PBKDF2',
+            salt,
+            iterations: 100000,
+            hash: 'SHA-256',
+          },
+          keyMaterial,
+          { name: 'AES-GCM', length: 256 },
+          false,
+          ['decrypt']
+        );
+        // Descifrar (WebCrypto espera tag al final del ciphertext)
+        const decrypted = await window.crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv },
+          key,
+          ciphertextAndTag
+        );
+        return new Uint8Array(decrypted);
+      };
+      // Descifrar y convertir a PEM
+      const privKeyBytes = await descifrarClavePrivada(claveCifrada, clavePago);
+      // Convertir a string PEM
+      const pem = new TextDecoder().decode(privKeyBytes);
+      // Importar clave privada PEM a CryptoKey
+      const pemHeader = '-----BEGIN PRIVATE KEY-----';
+      const pemFooter = '-----END PRIVATE KEY-----';
+      const pemContents = pem.replace(pemHeader, '').replace(pemFooter, '').replace(/\s/g, '');
+      const binaryDer = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+      const privateKey = await window.crypto.subtle.importKey(
+        'pkcs8',
+        binaryDer.buffer,
+        { name: 'RSASSA-PSS', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      // Construir mensaje a firmar
+      const mensaje = `${modal.solicitud.id_solicitud}:${cuentaSeleccionada}:${modal.solicitud.monto}`;
+      const encoder = new TextEncoder();
+      const signature = await window.crypto.subtle.sign(
+        { name: 'RSASSA-PSS', saltLength: 32 },
+        privateKey,
+        encoder.encode(mensaje)
+      );
+      const firmaB64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
+      // Enviar al backend
+      const res = await fetch(`/api/solicitudes/${modal.solicitud.id_solicitud}/pagar_firma`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id_cuenta_origen: cuentaSeleccionada, descripcion })
+        body: JSON.stringify({ id_cuenta_origen: cuentaSeleccionada, descripcion, firma: firmaB64 })
       });
       const data = await res.json();
       if (res.ok) {
-        // Actualizar el saldo de la cuenta usada en el estado de cuentas
         setCuentas(prevCuentas => prevCuentas.map(c =>
           c.id_cuenta === cuentaSeleccionada ? { ...c, saldo: data.nuevo_saldo } : c
         ));
-        // Guardar la cuenta usada con el nuevo saldo para mostrar en el modal de éxito
         const cuentaUsada = cuentas.find(c => c.id_cuenta === cuentaSeleccionada);
         setPagoExitoso({ ...data, solicitud: modal.solicitud, cuenta: cuentaUsada ? { ...cuentaUsada, saldo: data.nuevo_saldo } : undefined });
-        // Quitar la solicitud pagada de la lista
         setSolicitudes(solicitudes.filter(s => s.id_solicitud !== modal.solicitud!.id_solicitud));
+        setClaveCifrada('');
+        setClavePago('');
       } else {
         setError(data.mensaje || 'Error al realizar el pago');
       }
-    } catch {
-      setError('Error al realizar el pago');
+    } catch (e: any) {
+      setFirmaError('Error al descifrar la clave o firmar el pago. Verifica tu clave cifrada y contraseña.');
     }
   };
 
@@ -144,6 +214,17 @@ export default function PagosSeguros() {
                     <input type="text" value={descripcion} onChange={e => setDescripcion(e.target.value)} style={{ width:'100%' }} maxLength={100} />
                   </label>
                 </div>
+                <div style={{ margin: '1em 0' }}>
+                  <label>Clave privada cifrada:<br/>
+                    <textarea value={claveCifrada} onChange={e => setClaveCifrada(e.target.value)} style={{ width:'100%' }} rows={2} placeholder="Pega aquí tu clave privada cifrada" />
+                  </label>
+                </div>
+                <div style={{ margin: '1em 0' }}>
+                  <label>Contraseña para descifrar:<br/>
+                    <input type="password" value={clavePago} onChange={e => setClavePago(e.target.value)} style={{ width:'100%' }} maxLength={100} />
+                  </label>
+                </div>
+                {firmaError && <div style={{ color: 'red', fontSize: 13 }}>{firmaError}</div>}
                 <button style={{ marginTop: 12 }} onClick={completarPago}>Completar pago</button>
               </>
             ) : (
