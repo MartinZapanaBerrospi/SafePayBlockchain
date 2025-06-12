@@ -22,7 +22,7 @@ export default function Inicio() {
     <div style={{ textAlign: 'center', marginTop: '3rem' }}>
       <h2>Bienvenido{nombre ? `, ${nombre}` : ''}!</h2>
       <div style={{ marginTop: '2rem' }}>
-        <button style={{ marginRight: 16 }} onClick={() => navigate('/transferencia')}>Transferencia a usuario</button>
+        <button style={{ marginRight: 16 }} onClick={() => navigate('/transferencia-usuario')}>Transferencia a usuario</button>
         <button onClick={() => navigate('/pagos-seguros')}>Pagos seguros</button>
       </div>
     </div>

@@ -3,6 +3,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import Inicio from './pages/inicio';
 import PagosSeguros from './pages/PagosSeguros';
+import TransferenciaUsuario from './pages/TransferenciaUsuario';
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route path="/registro" element={<RegisterPage />} />
         <Route path="/inicio" element={<Inicio />} />
         <Route path="/pagos-seguros" element={<PagosSeguros />} />
+        <Route path="/transferencia-usuario" element={<TransferenciaUsuario />} />
         {/* Puedes agregar más rutas aquí, por ejemplo Dashboard */}
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>

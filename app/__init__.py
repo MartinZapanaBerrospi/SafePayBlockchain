@@ -22,4 +22,10 @@ def create_app():
     app.register_blueprint(routes_bp, url_prefix='/api', name='routes_api')
     from .models import pagos_bp
     app.register_blueprint(pagos_bp)
+
+    # Imprimir todas las rutas registradas
+    print("=== RUTAS REGISTRADAS EN FLASK ===")
+    for rule in app.url_map.iter_rules():
+        print(f"{rule.endpoint:30s} {','.join(rule.methods):20s} {rule}")
+
     return app

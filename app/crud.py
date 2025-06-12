@@ -6,7 +6,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 import os, base64
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-bp = Blueprint('api', __name__)
+bp = Blueprint('crud', __name__)
 
 # --- USUARIOS ---
 @bp.route('/usuarios', methods=['POST'])
@@ -90,6 +90,16 @@ def obtener_nombres_usuarios():
     ids = request.json.get('ids', [])
     usuarios = Usuario.query.filter(Usuario.id_usuario.in_(ids)).all()
     return jsonify({str(u.id_usuario): u.nombre for u in usuarios})
+
+@bp.route('/usuarios/buscar', methods=['GET'])
+def buscar_usuario():
+    nombre = request.args.get('nombre')
+    if not nombre:
+        return jsonify({'mensaje': 'Falta el nombre'}), 400
+    usuario = Usuario.query.filter(Usuario.nombre.ilike(nombre.strip())).first()
+    if not usuario:
+        return jsonify({'mensaje': 'Usuario no encontrado'}), 404
+    return jsonify({'id_usuario': usuario.id_usuario, 'nombre': usuario.nombre}), 200
 
 # --- CUENTAS ---
 @bp.route('/cuentas', methods=['POST'])
