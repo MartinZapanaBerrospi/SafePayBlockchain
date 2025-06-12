@@ -127,7 +127,10 @@ def pagar_solicitud_firma(id_solicitud):
     print("--- FIN DEPURACIÓN ---\n")
 
     # Cargar la clave pública
-    public_key = serialization.load_pem_public_key(usuario.clave_publica)
+    pubkey_data = usuario.clave_publica
+    if isinstance(pubkey_data, str):
+        pubkey_data = pubkey_data.encode('utf-8')
+    public_key = serialization.load_pem_public_key(pubkey_data)
     try:
         public_key.verify(
             firma_bytes,

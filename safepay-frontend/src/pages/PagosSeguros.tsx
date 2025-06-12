@@ -146,8 +146,18 @@ export default function PagosSeguros() {
       // Descifrar y convertir a PEM
       const privKeyBytes = await descifrarClavePrivada(claveCifrada, clavePago);
       // Convertir a string PEM
-      const pem = new TextDecoder().decode(privKeyBytes);
-      // Importar clave privada PEM a CryptoKey
+      let pem = new TextDecoder().decode(privKeyBytes);
+      // Si el PEM parece estar en formato hex (\xNN), conviértelo a texto
+      if (/^(\\x[0-9a-fA-F]{2})+$/.test(pem)) {
+        const hex = pem.replace(/\\x/g, '');
+        let str = '';
+        for (let i = 0; i < hex.length; i += 2) {
+          str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+        }
+        console.warn('[WARN] PEM estaba en hex, convertido a texto:', str);
+        pem = str;
+      }
+      // Limpiar y extraer base64 del PEM
       const pemHeader = '-----BEGIN PRIVATE KEY-----';
       const pemFooter = '-----END PRIVATE KEY-----';
       const pemContents = pem.replace(pemHeader, '').replace(pemFooter, '').replace(/\s/g, '');
@@ -171,7 +181,7 @@ export default function PagosSeguros() {
         privateKey = await window.crypto.subtle.importKey(
           'pkcs8',
           binaryDer.buffer,
-          { name: 'RSASSA-PSS', hash: 'SHA-256' },
+          { name: 'RSA-PSS', hash: 'SHA-256' }, // <-- nombre correcto para WebCrypto
           false,
           ['sign']
         );
@@ -183,7 +193,7 @@ export default function PagosSeguros() {
       const mensaje = `${modal.solicitud.id_solicitud}:${cuentaSeleccionada}:${modal.solicitud.monto}`;
       const encoder = new TextEncoder();
       const signature = await window.crypto.subtle.sign(
-        { name: 'RSASSA-PSS', saltLength: 32 },
+        { name: 'RSA-PSS', saltLength: 32 }, // <-- nombre correcto para WebCrypto
         privateKey,
         encoder.encode(mensaje)
       );

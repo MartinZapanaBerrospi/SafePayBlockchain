@@ -13,7 +13,7 @@ class Usuario(db.Model):
     fecha_creacion = db.Column(db.DateTime, default=db.func.current_timestamp())
     contrasena_hash = db.Column(db.String(128), nullable=False)
     clave_privada = db.Column(db.Text, nullable=True)  # Guardada como string PEM o base64
-    clave_publica = db.Column(db.LargeBinary, nullable=True)
+    clave_publica = db.Column(db.Text, nullable=True)  # Guardada como string PEM
     cuentas = db.relationship('Cuenta', backref='usuario', lazy=True)
     dispositivos = db.relationship('Dispositivo', backref='usuario', lazy=True)
     solicitudes_enviadas = db.relationship('SolicitudPago', foreign_keys='SolicitudPago.solicitante', backref='usuario_solicitante', lazy=True)
@@ -31,10 +31,6 @@ class Usuario(db.Model):
             public_exponent=65537,
             key_size=2048
         )
-        private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048
-        )
         private_bytes = private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.PKCS8,
@@ -45,8 +41,13 @@ class Usuario(db.Model):
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo
         )
-        self.clave_privada = private_bytes
-        self.clave_publica = public_bytes
+        self.clave_privada = private_bytes.decode('utf-8')  # Guardar como string PEM
+        self.clave_publica = public_bytes.decode('utf-8')   # Guardar como string PEM
+        # Forzar a str explícitamente (por si el modelo espera str)
+        if isinstance(self.clave_privada, bytes):
+            self.clave_privada = self.clave_privada.decode('utf-8')
+        if isinstance(self.clave_publica, bytes):
+            self.clave_publica = self.clave_publica.decode('utf-8')
 
 class Cuenta(db.Model):
     __tablename__ = 'cuenta'
