@@ -137,7 +137,7 @@ def pagar_solicitud_firma(id_solicitud):
             mensaje_bytes,
             padding.PSS(
                 mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=padding.PSS.MAX_LENGTH
+                salt_length=32  # Debe coincidir con el saltLength del frontend
             ),
             hashes.SHA256()
         )
@@ -158,4 +158,8 @@ def pagar_solicitud_firma(id_solicitud):
         estado='completada'
     ))
     db.session.commit()
-    return jsonify({'mensaje': 'Pago realizado, firma digital verificada y transacción registrada'}), 200
+    return jsonify({
+        'mensaje': 'Pago realizado, firma digital verificada y transacción registrada',
+        'nuevo_saldo': str(cuenta_origen.saldo),
+        'id_cuenta': cuenta_origen.id_cuenta
+    }), 200

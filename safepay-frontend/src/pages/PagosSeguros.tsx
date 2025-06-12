@@ -190,14 +190,19 @@ export default function PagosSeguros() {
         throw e;
       }
       // Construir mensaje a firmar
-      const mensaje = `${modal.solicitud.id_solicitud}:${cuentaSeleccionada}:${modal.solicitud.monto}`;
+      const montoFormateado = Number(modal.solicitud.monto).toFixed(2);
+      const mensaje = `${modal.solicitud.id_solicitud}:${cuentaSeleccionada}:${montoFormateado}`;
+      console.log('[DEBUG] Mensaje firmado:', mensaje);
       const encoder = new TextEncoder();
       const signature = await window.crypto.subtle.sign(
-        { name: 'RSA-PSS', saltLength: 32 }, // <-- nombre correcto para WebCrypto
+        { name: 'RSA-PSS', saltLength: 32 },
         privateKey,
         encoder.encode(mensaje)
       );
       const firmaB64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
+      // Log para comparar con backend
+      console.log('[DEBUG] Firma generada (base64):', firmaB64);
+      console.log('[DEBUG] Firma generada (hex):', Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, '0')).join(''));
       // Enviar al backend
       const res = await fetch(`/api/solicitudes/${modal.solicitud.id_solicitud}/pagar_firma`, {
         method: 'POST',
