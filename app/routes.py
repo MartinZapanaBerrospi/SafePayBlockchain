@@ -146,9 +146,9 @@ def pagar_solicitud_firma(id_solicitud):
         print(traceback.format_exc())
         return jsonify({'mensaje': 'Firma digital inválida', 'error': f'{type(e).__name__}: {str(e)}'}), 400
 
-    # Realizar el pago
-    cuenta_origen.saldo -= solicitud.monto
-    cuenta_destino.saldo += solicitud.monto
+    # Realizar el pago y actualizar saldos
+    cuenta_origen.saldo = float(cuenta_origen.saldo) - float(solicitud.monto)
+    cuenta_destino.saldo = float(cuenta_destino.saldo) + float(solicitud.monto)
     solicitud.estado = 'aceptada'
     db.session.add(Transaccion(
         cuenta_origen=cuenta_origen.id_cuenta,
