@@ -4,9 +4,6 @@
 INSERT INTO usuario (nombre, correo, telefono, fecha_creacion, contrasena_hash, clave_privada, clave_publica)
 VALUES ('UNI', 'uni@uni.edu', '0000000000', CURRENT_TIMESTAMP, 'hash_uni', NULL, NULL);
 
--- Usuario pagador: seteley
-INSERT INTO usuario (nombre, correo, telefono, fecha_creacion, contrasena_hash, clave_privada, clave_publica)
-VALUES ('seteley', 'seteley@mail.com', '1234567890', CURRENT_TIMESTAMP, 'hash_seteley', NULL, NULL);
 
 -- Cuenta para UNI
 INSERT INTO cuenta (id_usuario, saldo, moneda, activa)

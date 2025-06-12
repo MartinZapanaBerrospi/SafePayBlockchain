@@ -84,6 +84,7 @@ export default function PagosSeguros() {
   };
 
   const completarPago = async () => {
+    console.log('[DEBUG] completarPago llamado');
     setFirmaError('');
     if (!modal.solicitud || !cuentaSeleccionada) return;
     if (!claveCifrada || !clavePago) {
@@ -151,7 +152,19 @@ export default function PagosSeguros() {
       const pemFooter = '-----END PRIVATE KEY-----';
       const pemContents = pem.replace(pemHeader, '').replace(pemFooter, '').replace(/\s/g, '');
       console.log('PEM limpio (base64, sin headers ni espacios):', pemContents);
-      const binaryDer = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+      if (!pemContents || !/^[A-Za-z0-9+/=]+$/.test(pemContents)) {
+        console.error('[ERROR] El contenido base64 del PEM está vacío o malformado:', pemContents);
+        setFirmaError('Error: El contenido base64 de la clave privada descifrada está vacío o malformado.');
+        return;
+      }
+      let binaryDer;
+      try {
+        binaryDer = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+      } catch (e) {
+        console.error('[ERROR] atob falló para pemContents:', pemContents, e);
+        setFirmaError('Error: El contenido base64 de la clave privada descifrada no es válido.');
+        return;
+      }
       console.log('DER length:', binaryDer.length, 'Primeros bytes:', binaryDer.slice(0, 16));
       let privateKey;
       try {
@@ -195,7 +208,8 @@ export default function PagosSeguros() {
         setError(data.mensaje || 'Error al realizar el pago');
       }
     } catch (e: any) {
-      setFirmaError('Error al descifrar la clave o firmar el pago. Verifica tu clave cifrada y contraseña.');
+      console.error('[ERROR en completarPago]:', e);
+      setFirmaError('Error: ' + (e?.message || e?.toString() || 'Error al descifrar la clave o firmar el pago. Verifica tu clave cifrada y contraseña.'));
     }
   };
 

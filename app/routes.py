@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from .models import db, Usuario, Cuenta, Transaccion, SolicitudPago, Dispositivo
-import jwt
+import jwt as pyjwt
 import datetime
 from flask import current_app
 from cryptography.hazmat.primitives import hashes
@@ -22,10 +22,15 @@ def login():
     usuario = Usuario.query.filter_by(nombre=nombre).first()
     if usuario and usuario.check_contrasena(contrasena):
         # Generar token JWT
-        token = jwt.encode({
+        secret = str(current_app.config.get('SECRET_KEY', 'clave-secreta'))
+        exp = int((datetime.datetime.utcnow() + datetime.timedelta(hours=12)).timestamp())
+        token = pyjwt.encode({
             'id_usuario': usuario.id_usuario,
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=12)
-        }, current_app.config.get('SECRET_KEY', 'clave-secreta'), algorithm='HS256')
+            'exp': exp
+        }, secret, algorithm='HS256')
+        # Si el token es bytes, conviértelo a string
+        if isinstance(token, bytes):
+            token = token.decode('utf-8')
         return jsonify({'token': token, 'id_usuario': usuario.id_usuario})
     return jsonify({'mensaje': 'Credenciales inválidas'}), 401
 
@@ -80,6 +85,7 @@ def pagar_solicitud(id_solicitud):
 # --- PAGAR SOLICITUD CON FIRMA DIGITAL ---
 @bp.route('/solicitudes/<int:id_solicitud>/pagar_firma', methods=['POST'])
 def pagar_solicitud_firma(id_solicitud):
+    print("[DEBUG] Entrando a pagar_solicitud_firma")
     data = request.json
     id_cuenta_origen = data.get('id_cuenta_origen')
     firma = data.get('firma')  # Firma digital enviada por el cliente (base64)
@@ -110,6 +116,15 @@ def pagar_solicitud_firma(id_solicitud):
     mensaje = f"{id_solicitud}:{id_cuenta_origen}:{solicitud.monto}"
     mensaje_bytes = mensaje.encode('utf-8')
     firma_bytes = base64.b64decode(firma)
+
+    # LOGS DE DEPURACIÓN
+    print("\n--- DEPURACIÓN FIRMA DIGITAL ---")
+    print("Mensaje a firmar:", mensaje)
+    print("Mensaje bytes:", mensaje_bytes)
+    print("Firma recibida (base64):", firma)
+    print("Firma recibida (hex):", firma_bytes.hex())
+    print("Clave pública utilizada (PEM):\n", usuario.clave_publica)
+    print("--- FIN DEPURACIÓN ---\n")
 
     # Cargar la clave pública
     public_key = serialization.load_pem_public_key(usuario.clave_publica)

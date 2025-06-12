@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_cors import CORS
 from .config import Config
 
 
@@ -10,6 +11,8 @@ migrate = Migrate()
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    app.debug = True  # Activa el modo debug
+    CORS(app, resources={r"/api/*": {"origins": "*"}})  # Permite CORS global para /api
     db.init_app(app)
     migrate.init_app(app, db)
     from . import models
