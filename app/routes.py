@@ -142,7 +142,9 @@ def pagar_solicitud_firma(id_solicitud):
             hashes.SHA256()
         )
     except Exception as e:
-        return jsonify({'mensaje': 'Firma digital inválida', 'error': str(e)}), 400
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({'mensaje': 'Firma digital inválida', 'error': f'{type(e).__name__}: {str(e)}'}), 400
 
     # Realizar el pago
     cuenta_origen.saldo -= solicitud.monto

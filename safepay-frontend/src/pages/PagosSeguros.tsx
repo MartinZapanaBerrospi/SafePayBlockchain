@@ -215,7 +215,8 @@ export default function PagosSeguros() {
         setClaveCifrada('');
         setClavePago('');
       } else {
-        setError(data.mensaje || 'Error al realizar el pago');
+        setError((data.mensaje || 'Error al realizar el pago') + (data.error ? ' Detalle: ' + data.error : ''));
+        setFirmaError((data.mensaje || 'Error al realizar el pago') + (data.error ? ' Detalle: ' + data.error : ''));
       }
     } catch (e: any) {
       console.error('[ERROR en completarPago]:', e);
