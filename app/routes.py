@@ -66,13 +66,6 @@ def pagar_solicitud(id_solicitud):
     cuenta_origen.saldo = nuevo_saldo
     cuenta_destino.saldo = float(cuenta_destino.saldo) + float(solicitud.monto)
     solicitud.estado = 'aceptada'
-    transaccion = Transaccion(
-        cuenta_origen=cuenta_origen.id_cuenta,
-        cuenta_destino=cuenta_destino.id_cuenta,
-        monto=solicitud.monto,
-        descripcion=descripcion or f'Pago de solicitud #{solicitud.id_solicitud}',
-        estado='completada'
-    )
     db.session.add(transaccion)
     db.session.commit()
     return jsonify({
@@ -83,6 +76,13 @@ def pagar_solicitud(id_solicitud):
 
 
 # --- PAGAR SOLICITUD CON FIRMA DIGITAL ---
+def actualizar_saldo_cuenta(cuenta, nuevo_saldo):
+    """Actualiza y persiste el saldo de una cuenta."""
+    cuenta.saldo = float(nuevo_saldo)
+    db.session.add(cuenta)
+    db.session.flush()  # Asegura que el cambio se refleje en la sesión
+
+
 @bp.route('/solicitudes/<int:id_solicitud>/pagar_firma', methods=['POST'])
 def pagar_solicitud_firma(id_solicitud):
     print("[DEBUG] Entrando a pagar_solicitud_firma")
@@ -94,7 +94,7 @@ def pagar_solicitud_firma(id_solicitud):
 
     solicitud = SolicitudPago.query.get_or_404(id_solicitud)
     cuenta_origen = Cuenta.query.get(id_cuenta_origen)
-    cuenta_destino = Cuenta.query.filter_by(id_usuario=solicitud.destinatario, activa=True).first()
+    cuenta_destino = Cuenta.query.filter_by(id_usuario=solicitud.solicitante, activa=True).first()
     usuario = Usuario.query.get(cuenta_origen.id_usuario) if cuenta_origen else None
 
     if not cuenta_origen:
@@ -146,10 +146,19 @@ def pagar_solicitud_firma(id_solicitud):
         print(traceback.format_exc())
         return jsonify({'mensaje': 'Firma digital inválida', 'error': f'{type(e).__name__}: {str(e)}'}), 400
 
-    # Realizar el pago y actualizar saldos
-    cuenta_origen.saldo = float(cuenta_origen.saldo) - float(solicitud.monto)
-    cuenta_destino.saldo = float(cuenta_destino.saldo) + float(solicitud.monto)
+    # LOGS DE DEPURACIÓN DE SALDOS
+    print(f"[DEBUG] Saldo cuenta origen antes: {cuenta_origen.saldo}")
+    print(f"[DEBUG] Saldo cuenta destino antes: {cuenta_destino.saldo}")
+
+    # Realizar el pago y actualizar saldos usando la función exclusiva
+    nuevo_saldo_origen = float(cuenta_origen.saldo) - float(solicitud.monto)
+    nuevo_saldo_destino = float(cuenta_destino.saldo) + float(solicitud.monto)
+    actualizar_saldo_cuenta(cuenta_origen, nuevo_saldo_origen)
+    actualizar_saldo_cuenta(cuenta_destino, nuevo_saldo_destino)
+    print(f"[DEBUG] Saldo cuenta origen después: {cuenta_origen.saldo}")
+    print(f"[DEBUG] Saldo cuenta destino después: {cuenta_destino.saldo}")
     solicitud.estado = 'aceptada'
+    db.session.add(solicitud)
     db.session.add(Transaccion(
         cuenta_origen=cuenta_origen.id_cuenta,
         cuenta_destino=cuenta_destino.id_cuenta,
