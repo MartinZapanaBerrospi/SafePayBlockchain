@@ -8,8 +8,8 @@ import binascii
 DB_HOST = 'localhost'
 DB_PORT = 5432
 DB_NAME = 'safe_pay_db'
-DB_USER = 'seteley'
-DB_PASS = 'seteley'
+DB_USER = 'postgres'
+DB_PASS = '@marzabe96'
 
 # Nombre de la tabla y columna a migrar
 TABLE = 'usuario'  # Cambia si tu tabla se llama diferente

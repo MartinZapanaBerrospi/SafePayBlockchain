@@ -7,6 +7,15 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization
 import base64
+from blockchain import Blockchain
+
+blockchain = Blockchain()
+
+def sync_blockchain_balances():
+    """Sincroniza los saldos de la blockchain con los de la base de datos."""
+    from .models import Cuenta
+    cuentas = Cuenta.query.all()
+    blockchain.balances = {str(c.id_cuenta): float(c.saldo) for c in cuentas}
 
 bp = Blueprint('routes', __name__)
 
@@ -171,6 +180,17 @@ def pagar_solicitud_firma(id_solicitud):
         print(traceback.format_exc())
         return jsonify({'mensaje': 'Firma digital inválida', 'error': f'{type(e).__name__}: {str(e)}'}), 400
 
+    # Sincroniza los saldos antes de registrar en blockchain
+    sync_blockchain_balances()
+    try:
+        blockchain.add_payment(
+            sender=str(cuenta_origen.id_cuenta),
+            receiver=str(cuenta_destino.id_cuenta),
+            amount=float(solicitud.monto)
+        )
+    except Exception as e:
+        return jsonify({'mensaje': 'Error en blockchain', 'error': str(e)}), 500
+
     # LOGS DE DEPURACIÓN DE SALDOS
     print(f"[DEBUG] Saldo cuenta origen antes: {cuenta_origen.saldo}")
     print(f"[DEBUG] Saldo cuenta destino antes: {cuenta_destino.saldo}")
@@ -261,6 +281,17 @@ def transferencia_firma():
         import traceback
         print(traceback.format_exc())
         return jsonify({'mensaje': 'Firma digital inválida', 'error': f'{type(e).__name__}: {str(e)}'}), 400
+
+    # Sincroniza los saldos antes de registrar en blockchain
+    sync_blockchain_balances()
+    try:
+        blockchain.add_payment(
+            sender=str(cuenta_origen.id_cuenta),
+            receiver=str(cuenta_destino.id_cuenta),
+            amount=float(monto)
+        )
+    except Exception as e:
+        return jsonify({'mensaje': 'Error en blockchain', 'error': str(e)}), 500
 
     # Actualizar saldos
     nuevo_saldo_origen = float(cuenta_origen.saldo) - float(monto)
