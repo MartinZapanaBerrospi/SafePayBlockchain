@@ -229,14 +229,43 @@ def pagar_solicitud_firma(id_solicitud):
     print(f"[DEBUG] Saldo cuenta origen después: {cuenta_origen.saldo}")
     print(f"[DEBUG] Saldo cuenta destino después: {cuenta_destino.saldo}")
     solicitud.estado = 'aceptada'
-    db.session.add(solicitud)
-    db.session.add(Transaccion(
+    # Guardar transacción y asociar dispositivo si se envía
+    transaccion = Transaccion(
         cuenta_origen=cuenta_origen.id_cuenta,
         cuenta_destino=cuenta_destino.id_cuenta,
         monto=solicitud.monto,
         descripcion=f'Pago de solicitud #{solicitud.id_solicitud} (firma digital)',
         estado='completada'
-    ))
+    )
+    db.session.add(transaccion)
+    db.session.commit()
+    # Asociar dispositivo si viene en el request
+    id_dispositivo = data.get('id_dispositivo')
+    latitud = data.get('latitud')
+    longitud = data.get('longitud')
+    nombre_dispositivo = data.get('nombre_dispositivo')
+    dispositivo = None
+    if id_dispositivo:
+        dispositivo = Dispositivo.query.get(id_dispositivo)
+    if not dispositivo:
+        # Buscar si ya existe un dispositivo para este usuario y nombre
+        dispositivo = Dispositivo.query.filter_by(id_usuario=cuenta_origen.id_usuario, nombre=nombre_dispositivo).first()
+    if not dispositivo:
+        # Crear nuevo dispositivo automáticamente
+        dispositivo = Dispositivo(
+            id_usuario=cuenta_origen.id_usuario,
+            nombre=nombre_dispositivo or 'Desconocido',
+            latitud=latitud,
+            longitud=longitud
+        )
+        db.session.add(dispositivo)
+        db.session.flush()
+    # Asociar transacción
+    dispositivo.id_transaccion = transaccion.id_transaccion
+    if latitud is not None:
+        dispositivo.latitud = latitud
+    if longitud is not None:
+        dispositivo.longitud = longitud
     db.session.commit()
     return jsonify({
         'mensaje': 'Pago realizado, firma digital verificada y transacción registrada',
@@ -324,13 +353,42 @@ def transferencia_firma():
     nuevo_saldo_destino = float(cuenta_destino.saldo) + float(monto)
     actualizar_saldo_cuenta(cuenta_origen, nuevo_saldo_origen)
     actualizar_saldo_cuenta(cuenta_destino, nuevo_saldo_destino)
-    db.session.add(Transaccion(
+    # Guardar transacción y asociar dispositivo si se envía
+    transaccion = Transaccion(
         cuenta_origen=cuenta_origen.id_cuenta,
         cuenta_destino=cuenta_destino.id_cuenta,
         monto=monto,
         descripcion=f'Transferencia a usuario {id_usuario_destino}: {descripcion}',
         estado='completada'
-    ))
+    )
+    db.session.add(transaccion)
+    db.session.commit()
+    id_dispositivo = data.get('id_dispositivo')
+    latitud = data.get('latitud')
+    longitud = data.get('longitud')
+    nombre_dispositivo = data.get('nombre_dispositivo')
+    dispositivo = None
+    if id_dispositivo:
+        dispositivo = Dispositivo.query.get(id_dispositivo)
+    if not dispositivo:
+        # Buscar si ya existe un dispositivo para este usuario y nombre
+        dispositivo = Dispositivo.query.filter_by(id_usuario=cuenta_origen.id_usuario, nombre=nombre_dispositivo).first()
+    if not dispositivo:
+        # Crear nuevo dispositivo automáticamente
+        dispositivo = Dispositivo(
+            id_usuario=cuenta_origen.id_usuario,
+            nombre=nombre_dispositivo or 'Desconocido',
+            latitud=latitud,
+            longitud=longitud
+        )
+        db.session.add(dispositivo)
+        db.session.flush()
+    # Asociar transacción
+    dispositivo.id_transaccion = transaccion.id_transaccion
+    if latitud is not None:
+        dispositivo.latitud = latitud
+    if longitud is not None:
+        dispositivo.longitud = longitud
     db.session.commit()
     return jsonify({
         'mensaje': 'Transferencia realizada, firma digital verificada y transacción registrada',

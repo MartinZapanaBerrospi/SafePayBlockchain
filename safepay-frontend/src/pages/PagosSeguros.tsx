@@ -225,15 +225,23 @@ export default function PagosSeguros() {
       console.log('[DEBUG] Firma generada (base64):', firmaB64);
       console.log('[DEBUG] Firma generada (hex):', Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, '0')).join(''));
       // Enviar al backend
-      const res = await fetch(`/api/solicitudes/${modal.solicitud.id_solicitud}/pagar`, {
+      const userData = localStorage.getItem('userData');
+      let id_dispositivo = null;
+      if (userData) {
+        try {
+          const parsed = JSON.parse(userData);
+          id_dispositivo = parsed.id_dispositivo || localStorage.getItem('id_dispositivo');
+        } catch {}
+      }
+      const res = await fetch(`/api/solicitudes/${modal.solicitud.id_solicitud}/pagar_firma`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id_cuenta_origen: cuentaSeleccionada,
-          descripcion,
+          firma: firmaB64,
+          id_dispositivo,
           latitud,
-          longitud,
-          nombre_dispositivo: nombreDispositivo
+          longitud
         })
       });
       const data = await res.json();

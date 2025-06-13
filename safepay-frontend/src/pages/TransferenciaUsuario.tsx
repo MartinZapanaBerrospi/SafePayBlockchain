@@ -14,6 +14,8 @@ export default function TransferenciaUsuario() {
   const [error, setError] = useState('');
   const [claveCifrada, setClaveCifrada] = useState('');
   const [clavePago, setClavePago] = useState('');
+  const [latitud, setLatitud] = useState<number|null>(null);
+  const [longitud, setLongitud] = useState<number|null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,6 +36,21 @@ export default function TransferenciaUsuario() {
         const cuentasUsuario = data.filter((c: any) => c.id_usuario === id_usuario && c.activa);
         setCuentas(cuentasUsuario);
       });
+  }, []);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          setLatitud(pos.coords.latitude);
+          setLongitud(pos.coords.longitude);
+        },
+        () => {
+          setLatitud(null);
+          setLongitud(null);
+        }
+      );
+    }
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -131,6 +148,14 @@ export default function TransferenciaUsuario() {
       const sigHex = sig.sign();
       const sigB64 = hextob64(sigHex);
       // 5. Enviar transferencia
+      let id_dispositivo = null;
+      const userData = localStorage.getItem('userData');
+      if (userData) {
+        try {
+          const parsed = JSON.parse(userData);
+          id_dispositivo = parsed.id_dispositivo || localStorage.getItem('id_dispositivo');
+        } catch {}
+      }
       const res = await fetch('/api/transferencia_firma', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -140,6 +165,9 @@ export default function TransferenciaUsuario() {
           monto: montoFmt,
           descripcion,
           firma: sigB64,
+          id_dispositivo,
+          latitud,
+          longitud
         })
       });
       const data = await res.json();
