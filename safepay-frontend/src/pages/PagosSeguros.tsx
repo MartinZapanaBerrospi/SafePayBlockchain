@@ -24,6 +24,11 @@ export default function PagosSeguros() {
   const [clavePago, setClavePago] = useState('');
   const [firmaError, setFirmaError] = useState<string>('');
 
+  // Geolocalización para pagos
+  const [latitud, setLatitud] = useState<number|null>(null);
+  const [longitud, setLongitud] = useState<number|null>(null);
+  const [nombreDispositivo, setNombreDispositivo] = useState('');
+
   useEffect(() => {
     const userData = localStorage.getItem('userData');
     let id_usuario = null;
@@ -52,6 +57,22 @@ export default function PagosSeguros() {
         }
       })
       .catch(() => setError('No se pudieron cargar las solicitudes.'));
+  }, []);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          setLatitud(pos.coords.latitude);
+          setLongitud(pos.coords.longitude);
+        },
+        err => {
+          setLatitud(null);
+          setLongitud(null);
+        }
+      );
+    }
+    setNombreDispositivo(navigator.userAgent);
   }, []);
 
   const abrirModal = (solicitud: Solicitud) => {
@@ -204,10 +225,16 @@ export default function PagosSeguros() {
       console.log('[DEBUG] Firma generada (base64):', firmaB64);
       console.log('[DEBUG] Firma generada (hex):', Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, '0')).join(''));
       // Enviar al backend
-      const res = await fetch(`/api/solicitudes/${modal.solicitud.id_solicitud}/pagar_firma`, {
+      const res = await fetch(`/api/solicitudes/${modal.solicitud.id_solicitud}/pagar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id_cuenta_origen: cuentaSeleccionada, descripcion, firma: firmaB64 })
+        body: JSON.stringify({
+          id_cuenta_origen: cuentaSeleccionada,
+          descripcion,
+          latitud,
+          longitud,
+          nombre_dispositivo: nombreDispositivo
+        })
       });
       const data = await res.json();
       if (res.ok) {

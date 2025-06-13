@@ -18,6 +18,7 @@ class Usuario(db.Model):
     dispositivos = db.relationship('Dispositivo', backref='usuario', lazy=True)
     solicitudes_enviadas = db.relationship('SolicitudPago', foreign_keys='SolicitudPago.solicitante', backref='usuario_solicitante', lazy=True)
     solicitudes_recibidas = db.relationship('SolicitudPago', foreign_keys='SolicitudPago.destinatario', backref='usuario_destinatario', lazy=True)
+    tarjetas = db.relationship('Tarjeta', backref='usuario_tarjeta', lazy=True)
 
     def set_contrasena(self, contrasena):
         self.contrasena_hash = generate_password_hash(contrasena)
@@ -59,6 +60,15 @@ class Cuenta(db.Model):
     transacciones_origen = db.relationship('Transaccion', foreign_keys='Transaccion.cuenta_origen', backref='cuenta_origen_rel', lazy=True)
     transacciones_destino = db.relationship('Transaccion', foreign_keys='Transaccion.cuenta_destino', backref='cuenta_destino_rel', lazy=True)
 
+class Tarjeta(db.Model):
+    __tablename__ = 'tarjeta'
+    id_tarjeta = db.Column(db.Integer, primary_key=True)
+    id_usuario = db.Column(db.Integer, db.ForeignKey('usuario.id_usuario'))
+    numero_cuenta = db.Column(db.String(20), nullable=False)
+    fecha_vencimiento = db.Column(db.String(7), nullable=False)  # formato MM/AAAA
+    cvv = db.Column(db.String(4), nullable=False)
+    # Relación ya definida en Usuario con backref='tarjetas'
+
 class Transaccion(db.Model):
     __tablename__ = 'transaccion'
     id_transaccion = db.Column(db.Integer, primary_key=True)
@@ -68,6 +78,7 @@ class Transaccion(db.Model):
     descripcion = db.Column(db.Text)
     fecha = db.Column(db.DateTime, default=db.func.current_timestamp())
     estado = db.Column(db.String(20), default='completada')
+    # Eliminamos la FK aquí y la movemos a Dispositivo
 
 class SolicitudPago(db.Model):
     __tablename__ = 'solicitudpago'
@@ -78,14 +89,19 @@ class SolicitudPago(db.Model):
     mensaje = db.Column(db.Text)
     estado = db.Column(db.String(20), default='pendiente')
     fecha_solicitud = db.Column(db.DateTime, default=db.func.current_timestamp())
+    fecha_vencimiento = db.Column(db.DateTime, nullable=True)
 
 class Dispositivo(db.Model):
     __tablename__ = 'dispositivo'
     id_dispositivo = db.Column(db.Integer, primary_key=True)
     id_usuario = db.Column(db.Integer, db.ForeignKey('usuario.id_usuario'))
     nombre = db.Column(db.Text)
-    ip_registro = db.Column(db.String(50))  # SQLAlchemy no tiene tipo INET, se usa String
+    ip_registro = db.Column(db.String(50))
     ultimo_acceso = db.Column(db.DateTime, default=db.func.current_timestamp())
+    latitud = db.Column(db.Float, nullable=True)
+    longitud = db.Column(db.Float, nullable=True)
+    id_transaccion = db.Column(db.Integer, db.ForeignKey('transaccion.id_transaccion'), unique=True)
+    transaccion = db.relationship('Transaccion', backref=db.backref('dispositivo_rel', uselist=False))
 
 pagos_bp = Blueprint('pagos', __name__)
 

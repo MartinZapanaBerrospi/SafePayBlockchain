@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from .models import db, Usuario, Cuenta, Transaccion, SolicitudPago, Dispositivo
+from .models import db, Usuario, Cuenta, Transaccion, SolicitudPago, Dispositivo, Tarjeta
 import jwt as pyjwt
 import datetime
 from flask import current_app
@@ -75,6 +75,10 @@ def pagar_solicitud(id_solicitud):
     data = request.json
     id_cuenta_origen = data.get('id_cuenta_origen')
     descripcion = data.get('descripcion')
+    latitud = data.get('latitud')
+    longitud = data.get('longitud')
+    nombre_dispositivo = data.get('nombre_dispositivo', 'Dispositivo desconocido')
+    ip_registro = request.remote_addr
     if not id_cuenta_origen:
         return jsonify({'mensaje': 'Debe indicar la cuenta de origen'}), 400
 
@@ -95,6 +99,17 @@ def pagar_solicitud(id_solicitud):
     if solicitud.estado != 'pendiente':
         return jsonify({'mensaje': 'La solicitud ya fue procesada'}), 400
 
+    # Crear registro de dispositivo del que realiza el pago
+    dispositivo = Dispositivo(
+        id_usuario=cuenta_origen.id_usuario,
+        nombre=nombre_dispositivo,
+        ip_registro=ip_registro,
+        latitud=latitud,
+        longitud=longitud
+    )
+    db.session.add(dispositivo)
+    db.session.flush()  # Para obtener id_dispositivo
+
     # Realizar el pago y actualizar saldos
     nuevo_saldo = float(cuenta_origen.saldo) - float(solicitud.monto)
     cuenta_origen.saldo = nuevo_saldo
@@ -109,6 +124,9 @@ def pagar_solicitud(id_solicitud):
         estado='completada'
     )
     db.session.add(transaccion)
+    db.session.flush()  # Para obtener id_transaccion
+    # Asociar dispositivo a transacción
+    dispositivo.id_transaccion = transaccion.id_transaccion
     db.session.commit()
     return jsonify({
         'mensaje': 'Pago realizado y transacción registrada',
@@ -403,3 +421,69 @@ def registrar_usuario():
         'privateKeySalt': base64.urlsafe_b64encode(salt).decode(),
         'privateKeyTag': base64.urlsafe_b64encode(tag).decode(),
     }), 201
+
+
+# --- TARJETAS ---
+@bp.route('/usuarios/<int:id_usuario>/tarjetas', methods=['POST'])
+def agregar_tarjeta(id_usuario):
+    data = request.json
+    numero_cuenta = data.get('numero_cuenta')
+    fecha_vencimiento = data.get('fecha_vencimiento')
+    cvv = data.get('cvv')
+    if not numero_cuenta or not fecha_vencimiento or not cvv:
+        return jsonify({'mensaje': 'Faltan datos de la tarjeta'}), 400
+    tarjeta = Tarjeta(
+        id_usuario=id_usuario,
+        numero_cuenta=numero_cuenta,
+        fecha_vencimiento=fecha_vencimiento,
+        cvv=cvv
+    )
+    db.session.add(tarjeta)
+    db.session.commit()
+    return jsonify({'mensaje': 'Tarjeta agregada correctamente'}), 201
+
+@bp.route('/usuarios/<int:id_usuario>/tarjetas', methods=['GET'])
+def listar_tarjetas(id_usuario):
+    tarjetas = Tarjeta.query.filter_by(id_usuario=id_usuario).all()
+    return jsonify([
+        {
+            'id_tarjeta': t.id_tarjeta,
+            'numero_cuenta': t.numero_cuenta[-4:],  # Solo últimos 4 dígitos
+            'fecha_vencimiento': t.fecha_vencimiento
+        } for t in tarjetas
+    ])
+
+
+# --- DISPOSITIVOS ---
+@bp.route('/dispositivos/<int:id_dispositivo>/ubicacion', methods=['PUT'])
+def actualizar_ubicacion_dispositivo(id_dispositivo):
+    data = request.json
+    latitud = data.get('latitud')
+    longitud = data.get('longitud')
+    dispositivo = Dispositivo.query.get_or_404(id_dispositivo)
+    if latitud is not None:
+        dispositivo.latitud = latitud
+    if longitud is not None:
+        dispositivo.longitud = longitud
+    db.session.commit()
+    return jsonify({'mensaje': 'Ubicación actualizada'})
+
+# --- ASOCIAR DISPOSITIVO A TRANSACCIÓN ---
+@bp.route('/dispositivos/<int:id_dispositivo>/asociar_transaccion', methods=['PUT'])
+def asociar_dispositivo_transaccion(id_dispositivo):
+    data = request.json
+    id_transaccion = data.get('id_transaccion')
+    dispositivo = Dispositivo.query.get_or_404(id_dispositivo)
+    dispositivo.id_transaccion = id_transaccion
+    db.session.commit()
+    return jsonify({'mensaje': 'Dispositivo asociado a transacción'})
+
+# --- SOLICITUDES DE PAGO: FECHA DE VENCIMIENTO ---
+@bp.route('/solicitudes/<int:id_solicitud>/vencimiento', methods=['PUT'])
+def actualizar_vencimiento_solicitud(id_solicitud):
+    data = request.json
+    fecha_vencimiento = data.get('fecha_vencimiento')
+    solicitud = SolicitudPago.query.get_or_404(id_solicitud)
+    solicitud.fecha_vencimiento = fecha_vencimiento
+    db.session.commit()
+    return jsonify({'mensaje': 'Fecha de vencimiento actualizada'})
