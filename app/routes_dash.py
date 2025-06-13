@@ -67,6 +67,30 @@ def dashboard_indicadores():
         {'latitud': lat, 'longitud': lon} for lat, lon in ubicaciones
     ]
 
+    # Diagrama de torta: cantidad de solicitudes por estado
+    solicitudes_por_estado = db.session.query(
+        SolicitudPago.estado,
+        func.count(SolicitudPago.id_solicitud)
+    ).group_by(SolicitudPago.estado).all()
+    solicitudes_estado = [
+        {'estado': estado, 'cantidad': cantidad} for estado, cantidad in solicitudes_por_estado
+    ]
+
+    # Gráfica: usuarios nuevos por día (últimos 30 días)
+    usuarios_nuevos = db.session.query(
+        func.date(Usuario.fecha_creacion).label('fecha'),
+        func.count(Usuario.id_usuario)
+    ).filter(Usuario.fecha_creacion >= hace_30) \
+    .group_by(func.date(Usuario.fecha_creacion)) \
+    .order_by(func.date(Usuario.fecha_creacion)).all()
+    usuarios_nuevos_por_dia = []
+    usuarios_dict = {str(f): c for f, c in usuarios_nuevos}
+    for d in dias:
+        usuarios_nuevos_por_dia.append({
+            'fecha': d.isoformat(),
+            'cantidad': usuarios_dict.get(str(d), 0)
+        })
+
     return {
         'total_transacciones': total_transacciones,
         'monto_total': float(monto_total),
@@ -75,5 +99,7 @@ def dashboard_indicadores():
         'top_transacciones': top_transacciones,
         'top_montos': top_montos,
         'actividad_por_dia': actividad_por_dia,
-        'ubicaciones': ubicaciones_list
+        'ubicaciones': ubicaciones_list,
+        'solicitudes_estado': solicitudes_estado,
+        'usuarios_nuevos_por_dia': usuarios_nuevos_por_dia
     }

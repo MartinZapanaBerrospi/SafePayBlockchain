@@ -6,7 +6,13 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  CartesianGrid
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  BarChart,
+  Bar
 } from 'recharts';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -31,6 +37,8 @@ export default function Dashboard() {
         setLoading(false);
       });
   }, []);
+
+  const COLORS = ['#1976d2', '#43a047', '#ffa000', '#e53935', '#8e24aa', '#00838f'];
 
   return (
     <div style={{ maxWidth: 1100, margin: '2rem auto', padding: 24 }}>
@@ -133,6 +141,43 @@ export default function Dashboard() {
                   </Marker>
                 )) : null}
               </MapContainer>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', margin: '40px 0' }}>
+            <div style={{ flex: 1, minWidth: 320, background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #0001', padding: 24 }}>
+              <h3 style={{ marginBottom: 16 }}>Solicitudes por estado</h3>
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie
+                    data={indicadores?.solicitudes_estado || []}
+                    dataKey="cantidad"
+                    nameKey="estado"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {(indicadores?.solicitudes_estado || []).map((entry: any, idx: number) => (
+                      <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Legend />
+                  <Tooltip formatter={(v: any) => `${v} solicitudes`} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div style={{ flex: 1, minWidth: 320, background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #0001', padding: 24 }}>
+              <h3 style={{ marginBottom: 16 }}>Usuarios nuevos por día (últimos 30 días)</h3>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={indicadores?.usuarios_nuevos_por_dia || []}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="fecha" tickFormatter={d => d.slice(5)} minTickGap={3} />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip formatter={(v: any) => `${v} usuarios`} labelFormatter={l => `Fecha: ${l}`} />
+                  <Bar dataKey="cantidad" fill="#43a047" />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </>
