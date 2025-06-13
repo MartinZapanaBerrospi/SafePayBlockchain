@@ -70,7 +70,8 @@ export default function TransferenciaUsuario() {
       const id_usuario_destino = dataUsuario.id_usuario;
       // 2. Construir mensaje a firmar (cuidando decimales)
       const montoFmt = parseFloat(monto).toFixed(2);
-      const mensajeFirma = `${id_usuario_destino}:${cuentaOrigen}:${montoFmt}:${descripcion}`;
+      let descripcionFinal = descripcion.trim() ? descripcion : 'transaccion';
+      const mensajeFirma = `${id_usuario_destino}:${cuentaOrigen}:${montoFmt}:${descripcionFinal}`;
       // 3. Obtener clave privada desencriptada (como en PagosSeguros)
       // DEBUG: Mostrar qué hay en localStorage
       console.log('DEBUG localStorage', {
@@ -163,7 +164,7 @@ export default function TransferenciaUsuario() {
           id_usuario_destino,
           id_cuenta_origen: cuentaOrigen,
           monto: montoFmt,
-          descripcion,
+          descripcion: descripcionFinal,
           firma: sigB64,
           id_dispositivo,
           latitud,
@@ -215,16 +216,16 @@ export default function TransferenciaUsuario() {
         </div>
         <div>
           <label>Descripción:</label>
-          <input value={descripcion} onChange={e => setDescripcion(e.target.value)} required />
+          <input value={descripcion} onChange={e => setDescripcion(e.target.value)} />
         </div>
         <div>
           <label>Clave privada cifrada:<br/>
-            <textarea value={claveCifrada} onChange={e => setClaveCifrada(e.target.value)} style={{ width:'100%' }} rows={2} placeholder="Pega aquí tu clave privada cifrada (opcional)" />
+            <textarea value={claveCifrada} onChange={e => setClaveCifrada(e.target.value)} style={{ width:'100%' }} rows={2} placeholder="Pega aquí tu clave privada cifrada" />
           </label>
         </div>
         <div>
           <label>Contraseña para descifrar:<br/>
-            <input type="password" value={clavePago} onChange={e => setClavePago(e.target.value)} style={{ width:'100%' }} maxLength={100} placeholder="Solo si pegaste la clave cifrada" />
+            <input type="password" value={clavePago} onChange={e => setClavePago(e.target.value)} style={{ width:'100%' }} maxLength={100} placeholder="Ingresa la contraseña del usuario" />
           </label>
         </div>
         <button type="submit" disabled={loading}>Transferir</button>
