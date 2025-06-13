@@ -5,7 +5,7 @@ import psycopg
 import binascii
 
 DB_HOST = 'localhost'
-DB_PORT = 5434
+DB_PORT = 5432
 DB_NAME = 'safe_pay_db'
 DB_USER = 'seteley'
 DB_PASS = 'seteley'

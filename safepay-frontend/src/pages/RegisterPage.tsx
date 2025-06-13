@@ -23,7 +23,27 @@ export default function RegisterPage() {
     setShowClaveModal(false);
     try {
       const res = await register(nombre, correo, telefono, contrasena);
-      if (res.clave_privada_cifrada) {
+      // Formato antiguo: concatenar salt + iv + ciphertext + tag en base64
+      if (res.privateKeyEnc && res.privateKeyIv && res.privateKeySalt && res.privateKeyTag) {
+        // Decodificar cada parte
+        const salt = atob(res.privateKeySalt.replace(/-/g, '+').replace(/_/g, '/'));
+        const iv = atob(res.privateKeyIv.replace(/-/g, '+').replace(/_/g, '/'));
+        const ciphertext = atob(res.privateKeyEnc.replace(/-/g, '+').replace(/_/g, '/'));
+        const tag = atob(res.privateKeyTag.replace(/-/g, '+').replace(/_/g, '/'));
+        // Unir todo en un solo Uint8Array
+        const allBytes = new Uint8Array(salt.length + iv.length + ciphertext.length + tag.length);
+        let offset = 0;
+        [salt, iv, ciphertext, tag].forEach((part) => {
+          for (let i = 0; i < part.length; i++) {
+            allBytes[offset++] = part.charCodeAt(i);
+          }
+        });
+        // Codificar todo en base64 (formato antiguo)
+        const claveCifrada = btoa(String.fromCharCode(...allBytes));
+        setClavePrivadaCifrada(claveCifrada);
+        setShowClaveModal(true);
+        setSuccess('Usuario creado correctamente. Guarda tu clave privada cifrada.');
+      } else if (res.clave_privada_cifrada) {
         setClavePrivadaCifrada(res.clave_privada_cifrada);
         setShowClaveModal(true);
         setSuccess('Usuario creado correctamente. Guarda tu clave privada cifrada.');

@@ -15,7 +15,7 @@ export async function login(nombre: string, contrasena: string) {
 
 export async function register(nombre: string, correo: string, telefono: string, contrasena: string) {
   try {
-    const res = await axios.post('/api/usuarios', { nombre, correo, telefono, contrasena });
+    const res = await axios.post('/api/usuarios/registrar', { nombre, correo, telefono, contrasena });
     return res.data;
   } catch (err: any) {
     throw new Error(err.response?.data?.mensaje || 'Error al crear usuario');

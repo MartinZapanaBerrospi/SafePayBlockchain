@@ -293,3 +293,74 @@ def buscar_usuario():
     if not usuario:
         return jsonify({'mensaje': 'Usuario no encontrado'}), 404
     return jsonify({'id_usuario': usuario.id_usuario, 'nombre': usuario.nombre}), 200
+
+
+# --- AUXILIAR: Crear cuenta para usuario ---
+def crear_cuenta_usuario(id_usuario):
+    cuenta = Cuenta(
+        id_usuario=id_usuario,
+        saldo=0.00,
+        moneda='USD',
+        activa=True
+    )
+    db.session.add(cuenta)
+    db.session.commit()
+    return cuenta
+
+
+# --- REGISTRAR USUARIO ---
+@bp.route('/usuarios/registrar', methods=['POST'])
+def registrar_usuario():
+    data = request.json
+    nombre = data.get('nombre')
+    correo = data.get('correo')
+    telefono = data.get('telefono')
+    contrasena = data.get('contrasena')
+    if not nombre or not correo or not contrasena:
+        return jsonify({'mensaje': 'Faltan datos obligatorios'}), 400
+    if Usuario.query.filter_by(nombre=nombre).first() or Usuario.query.filter_by(correo=correo).first():
+        return jsonify({'mensaje': 'El usuario o correo ya existe'}), 400
+    usuario = Usuario(
+        nombre=nombre,
+        correo=correo,
+        telefono=telefono
+    )
+    usuario.set_contrasena(contrasena)
+    usuario.generar_claves()
+    db.session.add(usuario)
+    db.session.commit()
+    db.session.refresh(usuario)  # Asegura que id_usuario esté actualizado
+    print(f"[DEBUG] Usuario creado con id: {usuario.id_usuario}")
+    # Crear cuenta asociada
+    try:
+        cuenta = crear_cuenta_usuario(usuario.id_usuario)
+        print(f"[DEBUG] Cuenta creada con id: {cuenta.id_cuenta} para usuario: {usuario.id_usuario}")
+    except Exception as e:
+        print(f"[ERROR] No se pudo crear la cuenta: {e}")
+        return jsonify({'mensaje': 'Usuario creado pero error al crear la cuenta', 'error': str(e)}), 500
+    # Cifrar la clave privada con la contraseña del usuario (igual que en login)
+    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    import os, base64
+    salt = os.urandom(16)
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=100_000,
+    )
+    key = kdf.derive(contrasena.encode())
+    iv = os.urandom(12)
+    aesgcm = AESGCM(key)
+    priv_bytes = usuario.clave_privada.encode() if isinstance(usuario.clave_privada, str) else usuario.clave_privada
+    priv_encrypted = aesgcm.encrypt(iv, priv_bytes, None)
+    ciphertext = priv_encrypted[:-16]
+    tag = priv_encrypted[-16:]
+    return jsonify({
+        'mensaje': 'Usuario creado correctamente',
+        'id_usuario': usuario.id_usuario,
+        'privateKeyEnc': base64.urlsafe_b64encode(ciphertext).decode(),
+        'privateKeyIv': base64.urlsafe_b64encode(iv).decode(),
+        'privateKeySalt': base64.urlsafe_b64encode(salt).decode(),
+        'privateKeyTag': base64.urlsafe_b64encode(tag).decode(),
+    }), 201
