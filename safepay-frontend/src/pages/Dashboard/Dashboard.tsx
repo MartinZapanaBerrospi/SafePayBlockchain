@@ -1,4 +1,15 @@
 import React, { useEffect, useState } from 'react';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid
+} from 'recharts';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 
 export default function Dashboard() {
   const [indicadores, setIndicadores] = useState<any>(null);
@@ -22,31 +33,109 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div style={{ maxWidth: 900, margin: '2rem auto', padding: 24 }}>
+    <div style={{ maxWidth: 1100, margin: '2rem auto', padding: 24 }}>
       <h2>Dashboard de SafePay</h2>
       {loading ? (
         <div>Cargando indicadores...</div>
       ) : error ? (
         <div style={{ color: 'red' }}>Error: {error}</div>
       ) : (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24 }}>
-          <div style={{ flex: 1, minWidth: 220, background: '#f5f5f5', borderRadius: 8, padding: 16 }}>
-            <h3>Total de transacciones</h3>
-            <div style={{ fontSize: 32, fontWeight: 'bold' }}>{indicadores?.total_transacciones ?? '-'}</div>
+        <>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, marginBottom: 32 }}>
+            <div style={{ flex: 1, minWidth: 220, background: '#f5f5f5', borderRadius: 8, padding: 16 }}>
+              <h3>Total de transacciones</h3>
+              <div style={{ fontSize: 32, fontWeight: 'bold' }}>{indicadores?.total_transacciones ?? '-'}</div>
+            </div>
+            <div style={{ flex: 1, minWidth: 220, background: '#f5f5f5', borderRadius: 8, padding: 16 }}>
+              <h3>Monto total transferido</h3>
+              <div style={{ fontSize: 32, fontWeight: 'bold' }}>{indicadores?.monto_total?.toLocaleString('es-PE', { style: 'currency', currency: 'PEN' }) ?? '-'}</div>
+            </div>
+            <div style={{ flex: 1, minWidth: 220, background: '#f5f5f5', borderRadius: 8, padding: 16 }}>
+              <h3>Usuarios activos</h3>
+              <div style={{ fontSize: 32, fontWeight: 'bold' }}>{indicadores?.usuarios_activos ?? '-'}</div>
+            </div>
+            <div style={{ flex: 1, minWidth: 220, background: '#f5f5f5', borderRadius: 8, padding: 16 }}>
+              <h3>Solicitudes pendientes</h3>
+              <div style={{ fontSize: 32, fontWeight: 'bold' }}>{indicadores?.solicitudes_pendientes ?? '-'}</div>
+            </div>
           </div>
-          <div style={{ flex: 1, minWidth: 220, background: '#f5f5f5', borderRadius: 8, padding: 16 }}>
-            <h3>Monto total transferido</h3>
-            <div style={{ fontSize: 32, fontWeight: 'bold' }}>{indicadores?.monto_total?.toLocaleString('es-PE', { style: 'currency', currency: 'PEN' }) ?? '-'}</div>
+
+          <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 320, background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #0001', padding: 20 }}>
+              <h3 style={{ marginBottom: 12 }}>Top 5 usuarios con más transacciones</h3>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: '#f5f5f5' }}>
+                    <th style={{ textAlign: 'left', padding: 8 }}>Usuario</th>
+                    <th style={{ textAlign: 'right', padding: 8 }}>Transacciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {indicadores?.top_transacciones?.length ? indicadores.top_transacciones.map((item: any, idx: number) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
+                      <td style={{ padding: 8 }}>{item.usuario}</td>
+                      <td style={{ padding: 8, textAlign: 'right' }}>{item.transacciones}</td>
+                    </tr>
+                  )) : <tr><td colSpan={2} style={{ textAlign: 'center', padding: 12 }}>Sin datos</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ flex: 1, minWidth: 320, background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #0001', padding: 20 }}>
+              <h3 style={{ marginBottom: 12 }}>Top 5 usuarios con más dinero movido</h3>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: '#f5f5f5' }}>
+                    <th style={{ textAlign: 'left', padding: 8 }}>Usuario</th>
+                    <th style={{ textAlign: 'right', padding: 8 }}>Monto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {indicadores?.top_montos?.length ? indicadores.top_montos.map((item: any, idx: number) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
+                      <td style={{ padding: 8 }}>{item.usuario}</td>
+                      <td style={{ padding: 8, textAlign: 'right' }}>{item.monto.toLocaleString('es-PE', { style: 'currency', currency: 'PEN' })}</td>
+                    </tr>
+                  )) : <tr><td colSpan={2} style={{ textAlign: 'center', padding: 12 }}>Sin datos</td></tr>}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div style={{ flex: 1, minWidth: 220, background: '#f5f5f5', borderRadius: 8, padding: 16 }}>
-            <h3>Usuarios activos</h3>
-            <div style={{ fontSize: 32, fontWeight: 'bold' }}>{indicadores?.usuarios_activos ?? '-'}</div>
+
+          <div style={{ margin: '40px 0', background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #0001', padding: 24 }}>
+            <h3 style={{ marginBottom: 16 }}>Actividad de transacciones (últimos 30 días)</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart
+                data={indicadores?.actividad_por_dia || []}
+                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="fecha" tickFormatter={d => d.slice(5)} minTickGap={3} />
+                <YAxis allowDecimals={false} />
+                <Tooltip formatter={(v: any) => `${v} transacciones`} labelFormatter={l => `Fecha: ${l}`} />
+                <Line type="monotone" dataKey="cantidad" stroke="#1976d2" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
-          <div style={{ flex: 1, minWidth: 220, background: '#f5f5f5', borderRadius: 8, padding: 16 }}>
-            <h3>Solicitudes pendientes</h3>
-            <div style={{ fontSize: 32, fontWeight: 'bold' }}>{indicadores?.solicitudes_pendientes ?? '-'}</div>
+
+          <div style={{ margin: '40px 0', background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #0001', padding: 24 }}>
+            <h3 style={{ marginBottom: 16 }}>Mapa de ubicaciones de transacciones</h3>
+            <div style={{ width: '100%', height: 350 }}>
+              <MapContainer center={[-9.19, -75.0152]} zoom={5} style={{ width: '100%', height: 350 }} scrollWheelZoom={true}>
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                {indicadores?.ubicaciones?.length ? indicadores.ubicaciones.map((u: any, idx: number) => (
+                  <Marker key={idx} position={[u.latitud, u.longitud]}>
+                    <Popup>
+                      Transacción registrada aquí
+                    </Popup>
+                  </Marker>
+                )) : null}
+              </MapContainer>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

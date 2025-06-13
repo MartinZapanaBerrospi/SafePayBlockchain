@@ -1,5 +1,7 @@
 from flask import Blueprint
-from .models import db, Usuario, Transaccion, SolicitudPago, Cuenta
+from .models import db, Usuario, Transaccion, SolicitudPago, Cuenta, Dispositivo
+from sqlalchemy import func
+from datetime import datetime, timedelta
 
 bp_dash = Blueprint('routes_dash', __name__)
 
@@ -36,11 +38,42 @@ def dashboard_indicadores():
         {'usuario': nombre, 'monto': float(monto)} for nombre, monto in top_usuarios_monto
     ]
 
+    # Actividad de transacciones por día (últimos 30 días)
+    hoy = datetime.utcnow().date()
+    hace_30 = hoy - timedelta(days=29)
+    actividad = db.session.query(
+        func.date(Transaccion.fecha).label('fecha'),
+        func.count(Transaccion.id_transaccion)
+    ).filter(Transaccion.fecha >= hace_30) \
+    .group_by(func.date(Transaccion.fecha)) \
+    .order_by(func.date(Transaccion.fecha)).all()
+    actividad_por_dia = []
+    dias = [hace_30 + timedelta(days=i) for i in range(30)]
+    actividad_dict = {str(f): c for f, c in actividad}
+    for d in dias:
+        actividad_por_dia.append({
+            'fecha': d.isoformat(),
+            'cantidad': actividad_dict.get(str(d), 0)
+        })
+
+    # Mapa: ubicaciones de transacciones (de la tabla Dispositivo)
+    ubicaciones = db.session.query(
+        Dispositivo.latitud, Dispositivo.longitud
+    ).filter(
+        Dispositivo.latitud.isnot(None),
+        Dispositivo.longitud.isnot(None)
+    ).all()
+    ubicaciones_list = [
+        {'latitud': lat, 'longitud': lon} for lat, lon in ubicaciones
+    ]
+
     return {
         'total_transacciones': total_transacciones,
         'monto_total': float(monto_total),
         'usuarios_activos': usuarios_activos,
         'solicitudes_pendientes': solicitudes_pendientes,
         'top_transacciones': top_transacciones,
-        'top_montos': top_montos
+        'top_montos': top_montos,
+        'actividad_por_dia': actividad_por_dia,
+        'ubicaciones': ubicaciones_list
     }
