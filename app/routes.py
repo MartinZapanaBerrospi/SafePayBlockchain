@@ -100,6 +100,14 @@ def pagar_solicitud(id_solicitud):
     cuenta_origen.saldo = nuevo_saldo
     cuenta_destino.saldo = float(cuenta_destino.saldo) + float(solicitud.monto)
     solicitud.estado = 'aceptada'
+    # Crear la transacción antes de agregarla
+    transaccion = Transaccion(
+        cuenta_origen=cuenta_origen.id_cuenta,
+        cuenta_destino=cuenta_destino.id_cuenta,
+        monto=solicitud.monto,
+        descripcion=descripcion or f'Pago de solicitud #{solicitud.id_solicitud}',
+        estado='completada'
+    )
     db.session.add(transaccion)
     db.session.commit()
     return jsonify({
