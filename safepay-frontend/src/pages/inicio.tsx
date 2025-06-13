@@ -23,7 +23,8 @@ export default function Inicio() {
       <h2>Bienvenido{nombre ? `, ${nombre}` : ''}!</h2>
       <div style={{ marginTop: '2rem' }}>
         <button style={{ marginRight: 16 }} onClick={() => navigate('/transferencia-usuario')}>Transferencia a usuario</button>
-        <button onClick={() => navigate('/pagos-seguros')}>Pagos seguros</button>
+        <button style={{ marginRight: 16 }} onClick={() => navigate('/pagos-seguros')}>Pagos seguros</button>
+        <button onClick={() => navigate('/dashboard')}>Dashboard</button>
       </div>
     </div>
   );
