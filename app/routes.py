@@ -511,6 +511,15 @@ def listar_tarjetas(id_usuario):
         } for t in tarjetas
     ])
 
+@bp.route('/usuarios/<int:id_usuario>/tarjetas/<int:id_tarjeta>', methods=['DELETE'])
+def eliminar_tarjeta(id_usuario, id_tarjeta):
+    tarjeta = Tarjeta.query.filter_by(id_usuario=id_usuario, id_tarjeta=id_tarjeta).first()
+    if not tarjeta:
+        return jsonify({'mensaje': 'Tarjeta no encontrada'}), 404
+    db.session.delete(tarjeta)
+    db.session.commit()
+    return jsonify({'mensaje': 'Tarjeta eliminada correctamente'}), 200
+
 
 # --- DISPOSITIVOS ---
 @bp.route('/dispositivos/<int:id_dispositivo>/ubicacion', methods=['PUT'])
@@ -574,3 +583,28 @@ def chatbot():
         return jsonify({'respuesta': 'Puedo ayudarte a: realizar pagos, consultar tu saldo, registrar tarjetas, ver tu historial, gestionar dispositivos, usar firma digital y más. ¿Sobre qué tema necesitas ayuda?'})
     # Respuesta por defecto
     return jsonify({'respuesta': 'No entendí tu mensaje. Puedes preguntarme sobre pagos, tarjetas, saldo, blockchain, dispositivos, empresas, firma digital, usuarios, solicitudes o escribir “ayuda”.'})
+
+@bp.route('/usuarios/<int:id_usuario>/retirar', methods=['POST'])
+def retirar_dinero(id_usuario):
+    data = request.json
+    monto = data.get('monto')
+    if not monto or float(monto) <= 0:
+        return jsonify({'mensaje': 'Monto inválido'}), 400
+    cuenta = Cuenta.query.filter_by(id_usuario=id_usuario, activa=True).first()
+    if not cuenta:
+        return jsonify({'mensaje': 'Cuenta no encontrada'}), 404
+    if float(cuenta.saldo) < float(monto):
+        return jsonify({'mensaje': 'Saldo insuficiente'}), 400
+    # Restar saldo
+    cuenta.saldo = float(cuenta.saldo) - float(monto)
+    # Registrar transacción (emisor y receptor el mismo)
+    transaccion = Transaccion(
+        cuenta_origen=cuenta.id_cuenta,
+        cuenta_destino=cuenta.id_cuenta,
+        monto=monto,
+        descripcion='Retiro',
+        estado='completada'
+    )
+    db.session.add(transaccion)
+    db.session.commit()
+    return jsonify({'mensaje': 'Retiro realizado', 'nuevo_saldo': str(cuenta.saldo)}), 200

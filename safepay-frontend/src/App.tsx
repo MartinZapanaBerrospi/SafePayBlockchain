@@ -6,6 +6,7 @@ import PagosSeguros from './pages/PagosSeguros';
 import TransferenciaUsuario from './pages/TransferenciaUsuario';
 import Dashboard from './pages/Dashboard/Dashboard';
 import Navbar from './components/Navbar';
+import MiTarjeta from './pages/MiTarjeta';
 
 function AppRoutes() {
   const location = useLocation();
@@ -21,6 +22,7 @@ function AppRoutes() {
         <Route path="/pagos-seguros" element={<PagosSeguros />} />
         <Route path="/transferencia-usuario" element={<TransferenciaUsuario />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/mi-tarjeta" element={<MiTarjeta />} />
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </>

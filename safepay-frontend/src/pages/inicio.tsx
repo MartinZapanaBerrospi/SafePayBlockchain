@@ -30,6 +30,9 @@ export default function Inicio() {
         <button onClick={() => navigate('/dashboard')}>
           <span role="img" aria-label="dashboard">📊</span> Dashboard
         </button>
+        <button onClick={() => navigate('/mi-tarjeta')}>
+          <span role="img" aria-label="tarjeta">💳</span> Mi Tarjeta
+        </button>
       </div>
     </div>
   );
