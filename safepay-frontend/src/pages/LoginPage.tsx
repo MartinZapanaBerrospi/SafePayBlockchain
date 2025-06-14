@@ -23,8 +23,8 @@ export default function LoginPage() {
     setError('');
     try {
       const res = await login(nombre, contrasena);
-      // Guarda el nombre de usuario y el id_usuario en localStorage para mostrarlo en la página de inicio y filtrar solicitudes
-      localStorage.setItem('userData', JSON.stringify({ nombre, id_usuario: res.id_usuario }));
+      // Guarda el nombre de usuario, id_usuario y el token en localStorage para mostrarlo en la página de inicio y filtrar solicitudes
+      localStorage.setItem('userData', JSON.stringify({ nombre, id_usuario: res.id_usuario, token: res.token }));
       // NUEVO: Guardar claves cifradas y parámetros si vienen en la respuesta
       if (res.privateKeyEnc && res.privateKeyIv && res.privateKeySalt && res.privateKeyTag) {
         localStorage.setItem('privateKeyEnc', res.privateKeyEnc);

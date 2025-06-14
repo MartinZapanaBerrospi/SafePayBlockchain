@@ -559,37 +559,93 @@ def actualizar_vencimiento_solicitud(id_solicitud):
 # --- CHATBOT ---
 @bp.route('/chatbot', methods=['POST'])
 def chatbot():
+    from .chatbot_intent_model import classify_intent
+    from .chatbot_intent_llm import classify_intent_llm
     data = request.json
     mensaje = data.get('mensaje', '')
-    print('[DEBUG] Mensaje recibido:', mensaje, flush=True)
-    # Llama al modelo LLM para clasificar la intención
-    intencion_llm = classify_intent_llm(mensaje)
-    print('[DEBUG] Intención detectada:', intencion_llm, flush=True)
-    # Respuestas según intención
-    if intencion_llm.lower() == 'consultar saldo':
-        return jsonify({'respuesta': 'Puedes consultar tu saldo en la sección “Cuentas” o preguntándome aquí “¿Cuál es mi saldo?”. Si quieres ver el historial, ve a la sección de transacciones.'})
-    if intencion_llm.lower() == 'consultar historial':
-        return jsonify({'respuesta': 'Para ver tu historial de transacciones, ve a la sección de transacciones o pregúntame “¿Cuál es mi historial?”'})
-    if intencion_llm.lower() == 'registrar tarjeta':
-        return jsonify({'respuesta': 'Para registrar una tarjeta, ve a la sección “Mis tarjetas”, haz clic en “Agregar tarjeta” y completa los datos requeridos. Puedes ver tus tarjetas en el menú principal.'})
-    if intencion_llm.lower() == 'solicitar pago':
-        return jsonify({'respuesta': 'Puedes crear solicitudes de pago a otros usuarios y aceptar o rechazar las que recibas. Ve a la sección de solicitudes para gestionarlas.'})
-    if intencion_llm.lower() == 'registrar dispositivo':
-        return jsonify({'respuesta': 'Cada vez que realizas un pago, se registra el dispositivo y la ubicación desde donde lo hiciste. Puedes ver tus dispositivos en tu perfil.'})
-    if intencion_llm.lower() == 'realizar transferencia':
-        return jsonify({'respuesta': 'Para realizar un pago o transferencia, ve a la sección de solicitudes o transferencias, selecciona el destinatario, la cuenta y sigue los pasos. Puedes usar firma digital para mayor seguridad.'})
-    if intencion_llm.lower() == 'información general':
-        return jsonify({'respuesta': 'SafePay es una plataforma de pagos segura basada en blockchain, diseñada para facilitar transferencias, gestión de tarjetas y solicitudes de pago de manera confiable.'})
-    if intencion_llm.lower() == 'ayuda':
-        return jsonify({'respuesta': 'Puedo ayudarte a: realizar pagos, consultar tu saldo, registrar tarjetas, ver tu historial, gestionar dispositivos, usar firma digital y más. ¿Sobre qué tema necesitas ayuda?'})
-    if intencion_llm.lower() == 'despedida':
-        return jsonify({'respuesta': '¡Hasta luego! Si tienes más preguntas, aquí estaré.'})
-    if intencion_llm.lower() == 'saludo':
-        return jsonify({'respuesta': '¡Hola! ¿En qué puedo ayudarte hoy?'})
+    token = request.headers.get('Authorization', '').replace('Bearer ', '')
+    print(f"[DEBUG] Token recibido: {token}")
+    usuario = None
+    if token:
+        try:
+            secret = str(current_app.config.get('SECRET_KEY', 'clave-secreta'))
+            import jwt as pyjwt
+            data_token = pyjwt.decode(token, secret, algorithms=['HS256'])
+            print(f"[DEBUG] Decodificación JWT: {data_token}")
+            id_usuario = data_token.get('id_usuario')
+            usuario = Usuario.query.filter_by(id_usuario=id_usuario).first()
+            print(f"[DEBUG] Usuario encontrado: {usuario}")
+            # Obtener la cuenta principal del usuario
+            usuario.cuenta = Cuenta.query.filter_by(id_usuario=id_usuario).first()
+            print(f"[DEBUG] Cuenta encontrada: {usuario.cuenta}")
+            # Obtener todas las transacciones donde la cuenta es origen o destino
+            if usuario.cuenta:
+                from sqlalchemy import or_
+                usuario.transacciones = Transaccion.query.filter(
+                    or_(Transaccion.cuenta_origen == usuario.cuenta.id_cuenta,
+                        Transaccion.cuenta_destino == usuario.cuenta.id_cuenta)
+                ).all()
+            else:
+                usuario.transacciones = []
+            usuario.tarjetas = Tarjeta.query.filter_by(id_usuario=id_usuario).all()
+            # Corregir obtención de solicitudes: solicitante o destinatario
+            from sqlalchemy import or_
+            usuario.solicitudes = SolicitudPago.query.filter(
+                or_(SolicitudPago.solicitante == id_usuario, SolicitudPago.destinatario == id_usuario)
+            ).all()
+            usuario.dispositivos = Dispositivo.query.filter_by(id_usuario=id_usuario).all()
+        except Exception as e:
+            print(f"[DEBUG] Error decodificando token o buscando usuario: {e}")
+            usuario = None
 
-    # Si no se reconoce la intención, pedir al LLM que genere una respuesta profesional
-    respuesta_ia = classify_intent_llm(mensaje, modo='respuesta')
-    return jsonify({'respuesta': respuesta_ia})
+    RESPUESTAS_DINAMICAS = {
+        'consultar_saldo': lambda usuario: f"Tu saldo actual es S/ {usuario.cuenta.saldo:.2f}" if usuario and hasattr(usuario, 'cuenta') else "No se pudo obtener tu saldo.",
+        'consultar_historial': lambda usuario: f"Tus últimas transacciones: {', '.join([f'S/ {t.monto:.2f} a {getattr(t, 'destinatario', 'N/A')}' for t in getattr(usuario, 'transacciones', [])])}" if usuario and hasattr(usuario, 'transacciones') and usuario.transacciones else "No se encontraron transacciones.",
+        'consultar_tarjetas': lambda usuario: f"Tienes {len(getattr(usuario, 'tarjetas', []))} tarjeta(s) registrada(s)." if usuario and hasattr(usuario, 'tarjetas') else "No se encontraron tarjetas.",
+        'consultar_solicitudes': lambda usuario: f"Tienes {len(getattr(usuario, 'solicitudes', []))} solicitud(es) de pago." if usuario and hasattr(usuario, 'solicitudes') else "No se encontraron solicitudes.",
+        'consultar_dispositivos': lambda usuario: f"Tienes {len(getattr(usuario, 'dispositivos', []))} dispositivo(s) registrados." if usuario and hasattr(usuario, 'dispositivos') else "No se encontraron dispositivos.",
+        'ayuda': lambda usuario: 'Puedo ayudarte a: consultar saldo, historial, tarjetas, solicitudes, dispositivos, o darte información general.',
+        'info_general': lambda usuario: 'SafePay es una plataforma de pagos segura basada en blockchain, diseñada para facilitar transferencias, gestión de tarjetas y solicitudes de pago de manera confiable.',
+        'registro': lambda usuario: 'Para registrarte, haz clic en “Crear usuario” en la pantalla de inicio de sesión y completa tus datos.',
+        'funciones': lambda usuario: 'SafePay permite: transferencias seguras, gestión de tarjetas, solicitudes de pago, registro de dispositivos y consulta de historial.',
+        'que_es_safepay': lambda usuario: 'SafePay es una solución digital de pagos y transferencias con tecnología blockchain, pensada para seguridad y transparencia.'
+    }
+    INTENCIONES_TRANSACCIONALES = [
+        'consultar_saldo', 'consultar_historial', 'consultar_tarjetas',
+        'consultar_solicitudes', 'consultar_dispositivos', 'transferencia', 'pago'
+    ]
+
+    # 1. Intentar primero con la lógica local (NLP)
+    intencion = classify_intent(mensaje)
+    if intencion == 'no_encontrado':
+        # Si NLP no reconoce, pasar a Qwen
+        intencion_llm = classify_intent_llm(mensaje)
+        if intencion_llm.lower().replace(' ', '_') in INTENCIONES_TRANSACCIONALES and not usuario:
+            return jsonify({'respuesta': 'Debes iniciar sesión para consultar tu saldo, hacer transferencias o acceder a funciones personalizadas.'})
+        if intencion_llm in RESPUESTAS_DINAMICAS:
+            respuesta = RESPUESTAS_DINAMICAS[intencion_llm](usuario)
+            return jsonify({'respuesta': respuesta})
+        if intencion_llm.lower() == 'saludo':
+            return jsonify({'respuesta': '¡Hola! ¿En qué puedo ayudarte hoy?'})
+        if intencion_llm.lower() == 'despedida':
+            return jsonify({'respuesta': '¡Hasta luego! Si tienes más preguntas, aquí estaré.'})
+        if intencion_llm.lower() == 'ayuda':
+            return jsonify({'respuesta': RESPUESTAS_DINAMICAS['ayuda'](usuario)})
+        if intencion_llm.lower() == 'información general':
+            return jsonify({'respuesta': RESPUESTAS_DINAMICAS['info_general'](usuario)})
+        if intencion_llm.lower() == 'registro de usuario':
+            return jsonify({'respuesta': RESPUESTAS_DINAMICAS['registro'](usuario)})
+        # Si no se reconoce la intención, pedir a Qwen que genere una respuesta profesional
+        respuesta_ia = classify_intent_llm(mensaje, modo='respuesta')
+        return jsonify({'respuesta': respuesta_ia})
+    # Si NLP sí reconoce
+    if intencion in INTENCIONES_TRANSACCIONALES and not usuario:
+        return jsonify({'respuesta': 'Debes iniciar sesión para consultar tu saldo, hacer transferencias o acceder a funciones personalizadas.'})
+    if intencion in RESPUESTAS_DINAMICAS:
+        respuesta = RESPUESTAS_DINAMICAS[intencion](usuario)
+        return jsonify({'respuesta': respuesta})
+    # Fallback por si acaso
+    return jsonify({'respuesta': 'No se pudo procesar tu mensaje. Intenta de nuevo.'})
 
 
 @bp.route('/usuarios/<int:id_usuario>/retirar', methods=['POST'])

@@ -41,4 +41,4 @@ def classify_intent(text):
     for intent, keywords in EXAMPLES.items():
         if any(k in text for k in keywords):
             return intent
-    return "ayuda"
+    return "no_encontrado"

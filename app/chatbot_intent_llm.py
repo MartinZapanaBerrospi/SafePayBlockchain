@@ -10,7 +10,16 @@ def classify_intent_llm(mensaje_usuario, modo='clasificacion'):
         "Ejemplo:\n"
         "- 'bro, cuánto money tengo?' → Consultar saldo\n"
         "- 'cómo me registro?' → Registro de usuario\n"
-        "- 'qué es safepay?' → Información general\n\n"
+        "- 'qué es safepay?' → Información general\n"
+        "- 'quiero ver mis tarjetas' → Consultar tarjetas\n"
+        "- 'hazme una transferencia' → Realizar transferencia\n"
+        "- 'muéstrame mi historial' → Consultar historial\n"
+        "- 'registra mi dispositivo' → Registrar dispositivo\n"
+        "- 'quiero pagar una factura' → Realizar pago\n"
+        "- 'ayuda por favor' → Ayuda\n"
+        "- 'me despido, gracias' → Despedida\n"
+        "- 'hola bot' → Saludo\n"
+        "- 'no entiendo nada' → Otro\n"
     )
     if modo == 'clasificacion':
         prompt = (
@@ -18,18 +27,19 @@ def classify_intent_llm(mensaje_usuario, modo='clasificacion'):
             "Debes clasificar la intención del usuario aunque use palabras informales, modismos, errores ortográficos, abreviaturas, sinónimos, parafraseos o expresiones coloquiales. "
             "Reconoce preguntas directas e indirectas, y frases comunes en español de Latinoamérica y España. "
             "No dependas de palabras exactas, sino del significado general. "
-            "Clasifica la intención del usuario en una de las siguientes categorías:\n"
-            "- Saludo\n"
-            "- Consultar saldo\n"
-            "- Realizar transferencia\n"
-            "- Consultar historial\n"
-            "- Registrar tarjeta\n"
-            "- Solicitar pago\n"
-            "- Registrar dispositivo\n"
-            "- Registro de usuario\n"
-            "- Información general\n"
-            "- Ayuda\n"
-            "- Despedida\n"
+            "Si el usuario pregunta por su saldo usando cualquier sinónimo, jerga, palabra informal o parafraseo (por ejemplo: 'cuánta lana tengo', 'cuánto money tengo', 'cuánta plata tengo', 'cuánto dinero tengo', 'cuánto cash tengo', 'cuánto billete tengo', etc.), SIEMPRE responde con la categoría exacta: Consultar saldo. "
+            "Clasifica la intención del usuario en una de las siguientes categorías (distingue claramente entre informativas y transaccionales):\n"
+            "- Saludo (informativa)\n"
+            "- Consultar saldo (transaccional)\n"
+            "- Realizar transferencia (transaccional)\n"
+            "- Consultar historial (transaccional)\n"
+            "- Registrar tarjeta (transaccional)\n"
+            "- Solicitar pago (transaccional)\n"
+            "- Registrar dispositivo (transaccional)\n"
+            "- Registro de usuario (informativa)\n"
+            "- Información general (informativa)\n"
+            "- Ayuda (informativa)\n"
+            "- Despedida (informativa)\n"
             "- Otro\n\n"
             f"{ejemplos}"
             "Responde únicamente con el nombre de la categoría, sin explicación adicional.\n\n"
@@ -59,10 +69,10 @@ def classify_intent_llm(mensaje_usuario, modo='clasificacion'):
             return limpiar_respuesta(data["choices"][0]["message"]["content"].strip())
         else:
             print("Error:", response.status_code, response.text)
-            return "Error"
+            return "Otro"
     except requests.exceptions.RequestException as e:
         print("Error de conexión:", e)
-        return "Error de conexión"
+        return "Otro"
 
 def limpiar_respuesta(texto):
     texto_limpio = re.sub(r'<think>.*?</think>\n?', '', texto, flags=re.DOTALL)

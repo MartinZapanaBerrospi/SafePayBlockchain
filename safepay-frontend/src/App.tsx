@@ -23,6 +23,7 @@ function AppRoutes() {
         <Route path="/transferencia-usuario" element={<TransferenciaUsuario />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/mi-tarjeta" element={<MiTarjeta />} />
+        <Route path="/" element={<Navigate to="/login" />} />
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </>

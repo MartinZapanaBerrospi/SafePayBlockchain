@@ -34,71 +34,6 @@ const coloresInterbank = {
   naranja: '#b26a00',
 };
 
-const INTENT_KEYWORDS = [
-  { intent: 'saludo', keywords: ['hola', 'buenos días', 'buenas tardes', 'buenas noches', 'qué tal', 'saludos', 'hey', 'holi', 'hello', 'hi'] },
-  { intent: 'despedida', keywords: ['adiós', 'hasta luego', 'nos vemos', 'bye', 'chao', 'me voy', 'gracias, chau', 'gracias, adiós'] },
-  { intent: 'agradecimiento', keywords: ['gracias', 'muchas gracias', 'te agradezco', 'thank you', 'thanks'] },
-  { intent: 'info_general', keywords: ['qué es safepay', 'información general', 'presentación', 'sobre safepay', 'seguro', 'quién puede usar'] },
-  { intent: 'registro', keywords: ['cómo me registro', 'registrarme', 'crear cuenta', 'abrir cuenta'] },
-  { intent: 'funciones', keywords: ['qué funciones tiene', 'qué puedo hacer', 'servicios disponibles', 'funcionalidades'] },
-  { intent: 'ayuda', keywords: ['ayuda', 'soporte', 'opciones'] },
-];
-
-const INTENT_RESPONSES = {
-  saludo: '¡Hola! ¿En qué puedo ayudarte hoy? Puedes preguntarme sobre SafePay, registro, funciones, seguridad y más.',
-  despedida: '¡Hasta luego! Si tienes más preguntas, aquí estaré para ayudarte.',
-  agradecimiento: '¡De nada! Si necesitas más información, no dudes en preguntar.',
-  info_general: 'SafePay es una plataforma de pagos segura basada en blockchain, diseñada para facilitar transferencias, gestión de tarjetas y solicitudes de pago de manera confiable. Cualquier persona puede usar SafePay para pagos y transferencias seguras.',
-  registro: 'Para registrarte, haz clic en “Crear usuario” en la pantalla de inicio de sesión y completa tus datos. Es rápido y sencillo.',
-  funciones: 'SafePay permite: transferencias seguras, gestión de tarjetas, solicitudes de pago, registro de dispositivos y consulta de historial.',
-  ayuda: 'Puedes preguntarme sobre qué es SafePay, cómo registrarte, qué funciones tiene, seguridad y más. ¿Sobre qué tema necesitas ayuda?'
-};
-
-const INTENT_KEYWORDS_CON_SESION = [
-  { intent: 'saludo', keywords: ['hola', 'buenos días', 'buenas tardes', 'buenas noches', 'qué tal', 'saludos', 'hey', 'holi', 'hello', 'hi'] },
-  { intent: 'agradecimiento', keywords: ['gracias', 'muchas gracias', 'te agradezco', 'thank you', 'thanks'] },
-];
-
-const INTENT_RESPONSES_CON_SESION = {
-  saludo: '¡Hola! ¿En qué operación bancaria puedo ayudarte hoy?',
-  agradecimiento: '¡Con gusto! Si necesitas realizar una consulta o transacción, solo dime.',
-};
-
-// Unificar intenciones de saludo y agradecimiento para ambos modos
-const INTENT_KEYWORDS_COMUN = [
-  { intent: 'saludo', keywords: ['hola', 'buenas', 'buenos días', 'buenas tardes', 'buenas noches', 'qué tal', 'saludos', 'hey', 'holi', 'hello', 'hi'] },
-  { intent: 'agradecimiento', keywords: ['gracias', 'muchas gracias', 'te agradezco', 'thank you', 'thanks'] },
-];
-
-const INTENT_RESPONSES_COMUN = {
-  saludo: '¡Hola! ¿En qué puedo ayudarte hoy?',
-  agradecimiento: '¡Con gusto! Si necesitas más información o ayuda, solo dime.',
-};
-
-function detectarIntencion(texto: string): keyof typeof INTENT_RESPONSES | 'desconocida' {
-  const lower = texto.toLowerCase();
-  for (const { intent, keywords } of INTENT_KEYWORDS) {
-    if (keywords.some(k => lower.includes(k))) return intent as keyof typeof INTENT_RESPONSES;
-  }
-  return 'desconocida';
-}
-
-function detectarIntencionConSesion(texto: string): keyof typeof INTENT_RESPONSES_CON_SESION | 'desconocida' {
-  const lower = texto.toLowerCase();
-  for (const { intent, keywords } of INTENT_KEYWORDS_CON_SESION) {
-    if (keywords.some(k => lower.includes(k))) return intent as keyof typeof INTENT_RESPONSES_CON_SESION;
-  }
-  return 'desconocida';
-}
-
-function detectarIntencionComun(texto: string): keyof typeof INTENT_RESPONSES_COMUN | 'desconocida' {
-  const lower = texto.toLowerCase();
-  for (const { intent, keywords } of INTENT_KEYWORDS_COMUN) {
-    if (keywords.some(k => lower.includes(k))) return intent as keyof typeof INTENT_RESPONSES_COMUN;
-  }
-  return 'desconocida';
-}
-
 const ChatbotWidget: React.FC = () => {
   const [input, setInput] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -111,19 +46,16 @@ const ChatbotWidget: React.FC = () => {
     chatRef.current?.scrollTo(0, chatRef.current.scrollHeight);
   }, [mensajes]);
 
-  // Detectar solo el estado de sesión para actualizar el modo del chatbot
   useEffect(() => {
     const userData = localStorage.getItem('userData');
     setLogueado(!!userData);
   }, []);
 
-  // Escuchar cambios en localStorage para actualizar el modo del chatbot en tiempo real
   useEffect(() => {
     const checkSession = () => {
       setLogueado(!!localStorage.getItem('userData'));
     };
     window.addEventListener('storage', checkSession);
-    // También escuchar cambios locales (ej: login/logout en la misma pestaña)
     const interval = setInterval(checkSession, 1000);
     return () => {
       window.removeEventListener('storage', checkSession);
@@ -131,7 +63,6 @@ const ChatbotWidget: React.FC = () => {
     };
   }, []);
 
-  // Mensaje de bienvenida profesional y actualización de sugerencias al iniciar/cerrar sesión
   useEffect(() => {
     setMensajes([
       {
@@ -146,60 +77,24 @@ const ChatbotWidget: React.FC = () => {
   const enviarMensaje = async (texto: string) => {
     setMensajes(m => [...m, { autor: 'usuario', texto }]);
     setEnviando(true);
-    // Detección global de saludo y agradecimiento
-    const intentComun = detectarIntencionComun(texto);
-    if (intentComun !== 'desconocida') {
-      setTimeout(() => {
-        setMensajes(m => [...m, { autor: 'bot', texto: INTENT_RESPONSES_COMUN[intentComun] }]);
-        setEnviando(false);
-      }, 500);
-      return;
+    try {
+      const headers: any = { 'Content-Type': 'application/json' };
+      const userData = localStorage.getItem('userData');
+      if (userData) {
+        const { token } = JSON.parse(userData);
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+      }
+      const res = await fetch('/api/chatbot', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ mensaje: texto })
+      });
+      const data = await res.json();
+      setMensajes(m => [...m, { autor: 'bot', texto: data.respuesta }]);
+    } catch {
+      setMensajes(m => [...m, { autor: 'bot', texto: 'Ocurrió un error. Intenta de nuevo.' }]);
     }
-    if (!logueado) {
-      // Detección de intenciones local antes de login
-      const intent = detectarIntencion(texto);
-      if (intent !== 'desconocida') {
-        setTimeout(() => {
-          setMensajes(m => [...m, { autor: 'bot', texto: INTENT_RESPONSES[intent] }]);
-          setEnviando(false);
-        }, 500);
-        return;
-      } else {
-        setTimeout(() => {
-          setMensajes(m => [...m, { autor: 'bot', texto: 'No entendí tu mensaje. Puedes preguntarme sobre SafePay, registro, funciones, seguridad o escribir “ayuda”.' }]);
-          setEnviando(false);
-        }, 500);
-        return;
-      }
-    } else {
-      // Detección de saludo y agradecimiento local después de login
-      const intent = detectarIntencionConSesion(texto);
-      if (intent !== 'desconocida') {
-        setTimeout(() => {
-          setMensajes(m => [...m, { autor: 'bot', texto: INTENT_RESPONSES_CON_SESION[intent] }]);
-          setEnviando(false);
-        }, 500);
-        return;
-      }
-      try {
-        const headers: any = { 'Content-Type': 'application/json' };
-        const userData = localStorage.getItem('userData');
-        if (userData) {
-          const { token } = JSON.parse(userData);
-          if (token) headers['Authorization'] = `Bearer ${token}`;
-        }
-        const res = await fetch('/api/chatbot', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ mensaje: texto })
-        });
-        const data = await res.json();
-        setMensajes(m => [...m, { autor: 'bot', texto: data.respuesta }]);
-      } catch {
-        setMensajes(m => [...m, { autor: 'bot', texto: 'Ocurrió un error. Intenta de nuevo.' }]);
-      }
-      setEnviando(false);
-    }
+    setEnviando(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -208,17 +103,6 @@ const ChatbotWidget: React.FC = () => {
       enviarMensaje(input.trim());
       setInput('');
     }
-  };
-
-  const theme = {
-    fondo: coloresInterbank.blanco,
-    texto: coloresInterbank.grisOscuro,
-    burbujaUsuario: coloresInterbank.verde,
-    burbujaBot: coloresInterbank.grisMedio,
-    textoUsuario: coloresInterbank.blanco,
-    textoBot: coloresInterbank.grisOscuro,
-    borde: coloresInterbank.azul,
-    sugerencia: coloresInterbank.azul,
   };
 
   if (!visible) {
@@ -235,7 +119,6 @@ const ChatbotWidget: React.FC = () => {
     );
   }
 
-  // Panel más grande y responsive
   return (
     <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, fontFamily: 'Segoe UI, Arial, sans-serif', maxWidth: '98vw' }}>
       <div style={{ width: 370, maxWidth: '98vw', height: 520, maxHeight: '90vh', background: 'linear-gradient(135deg, #f7fafd 60%, #e3eafc 100%)', borderRadius: 18, boxShadow: '0 4px 24px #00336622', display: 'flex', flexDirection: 'column', overflow: 'hidden', border: `2px solid ${coloresInterbank.azul}` }}>
