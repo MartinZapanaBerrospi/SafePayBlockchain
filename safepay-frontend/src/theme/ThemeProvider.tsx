@@ -2,25 +2,29 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 
 // Colores corporativos Interbank
 const lightTheme = {
-  background: '#f4fafd',
+  background: '#f9fafb', // gris muy claro
   card: '#fff',
-  text: '#222',
-  primary: '#2196f3', // Azul
-  secondary: '#43a047', // Verde
-  accent: '#00bcd4',
-  border: '#e0e0e0',
+  text: '#18181b', // gris casi negro
+  primary: '#2563eb', // azul profesional
+  secondary: '#16a34a', // verde profesional
+  accent: '#f59e42', // naranja suave
+  border: '#e5e7eb', // gris claro
   buttonText: '#fff',
+  success: '#16a34a',
+  error: '#dc2626',
 };
 
 const darkTheme = {
-  background: '#181c1f',
-  card: '#23272b',
-  text: '#f4fafd',
-  primary: '#43a047', // Verde Interbank
-  secondary: '#2196f3', // Azul
-  accent: '#00bcd4',
-  border: '#333',
-  buttonText: '#fff',
+  background: '#18181b', // gris oscuro
+  card: '#23272f',
+  text: '#f3f4f6', // blanco casi puro
+  primary: '#60a5fa', // azul claro para contraste
+  secondary: '#4ade80', // verde claro
+  accent: '#facc15', // amarillo para acento
+  border: '#374151', // gris oscuro
+  buttonText: '#18181b',
+  success: '#22d3ee',
+  error: '#f87171',
 };
 
 const ThemeContext = createContext({

@@ -30,7 +30,7 @@ const Navbar: React.FC = () => {
         <button className="link" onClick={() => navigate('/dashboard')}>Dashboard</button>
         <button className="link" onClick={() => navigate('/pagos-seguros')}>Pagos</button>
         <button className="link" onClick={() => navigate('/transferencia-usuario')}>Transferencias</button>
-        <button className="link" onClick={() => navigate('/mi-tarjeta')}>Mi Tarjeta</button>
+        <button className="link" onClick={() => navigate('/mi-tarjeta')}>Mi Cuenta</button>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         {nombre && <span style={{ fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>👤 {nombre}</span>}

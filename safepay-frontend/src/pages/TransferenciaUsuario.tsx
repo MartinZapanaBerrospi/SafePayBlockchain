@@ -6,6 +6,7 @@ import { KJUR, KEYUTIL, hextob64 } from 'jsrsasign';
 export default function TransferenciaUsuario() {
   const [cuentas, setCuentas] = useState([]);
   const [cuentaOrigen, setCuentaOrigen] = useState('');
+  const [cuentaOrigenObj, setCuentaOrigenObj] = useState<any>(null);
   const [usuarioDestino, setUsuarioDestino] = useState('');
   const [monto, setMonto] = useState('');
   const [descripcion, setDescripcion] = useState('');
@@ -37,6 +38,15 @@ export default function TransferenciaUsuario() {
         setCuentas(cuentasUsuario);
       });
   }, []);
+
+  useEffect(() => {
+    if (cuentaOrigen) {
+      const obj = cuentas.find((c: any) => c.id_cuenta === cuentaOrigen);
+      setCuentaOrigenObj(obj);
+    } else {
+      setCuentaOrigenObj(null);
+    }
+  }, [cuentaOrigen, cuentas]);
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -192,50 +202,70 @@ export default function TransferenciaUsuario() {
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: '2rem auto' }}>
+    <div className="transfer-panel fade-in">
       <h2>Transferencia a usuario</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
+      <form className="transfer-form" onSubmit={handleSubmit} autoComplete="off">
+        <div className="form-group">
           <label>Cuenta de origen:</label>
           <select value={cuentaOrigen} onChange={e => setCuentaOrigen(e.target.value)} required>
             <option value="">Selecciona una cuenta</option>
             {cuentas.map((c: any) => (
               <option key={c.id_cuenta} value={c.id_cuenta}>
-                {c.id_cuenta} - Saldo: {c.saldo}
+                {c.id_cuenta} - Saldo: S/ {parseFloat(c.saldo).toFixed(2)}
               </option>
             ))}
           </select>
+          {cuentaOrigenObj && (
+            <div className="cuenta-saldo-info">
+              <span>Saldo disponible:</span>
+              <span className="cuenta-saldo-valor">S/ {parseFloat(cuentaOrigenObj.saldo).toFixed(2)}</span>
+            </div>
+          )}
         </div>
-        <div>
+        <div className="form-group">
           <label>Usuario destino:</label>
-          <input value={usuarioDestino} onChange={e => setUsuarioDestino(e.target.value)} required />
+          <input value={usuarioDestino} onChange={e => setUsuarioDestino(e.target.value)} required placeholder="Nombre de usuario o correo" />
         </div>
-        <div>
+        <div className="form-group">
           <label>Monto:</label>
-          <input type="number" step="0.01" value={monto} onChange={e => setMonto(e.target.value)} required />
+          <input type="number" step="0.01" min="0.01" value={monto} onChange={e => setMonto(e.target.value)} required placeholder="Monto a transferir" />
         </div>
-        <div>
+        <div className="form-group">
           <label>Descripción:</label>
-          <input value={descripcion} onChange={e => setDescripcion(e.target.value)} />
+          <input value={descripcion} onChange={e => setDescripcion(e.target.value)} placeholder="Motivo o referencia (opcional)" />
         </div>
-        <div>
-          <label>Clave privada cifrada:<br/>
-            <textarea value={claveCifrada} onChange={e => setClaveCifrada(e.target.value)} style={{ width:'100%' }} rows={2} placeholder="Pega aquí tu clave privada cifrada" />
-          </label>
+        <div className="form-group">
+          <label htmlFor="clave-cifrada">Clave privada cifrada:</label>
+          <textarea
+            id="clave-cifrada"
+            value={claveCifrada}
+            onChange={e => setClaveCifrada(e.target.value)}
+            rows={4}
+            placeholder="Pega aquí tu clave privada cifrada"
+            style={{ minHeight: 64, fontFamily: 'monospace', fontSize: '1em', resize: 'vertical' }}
+          />
         </div>
-        <div>
-          <label>Contraseña para descifrar:<br/>
-            <input type="password" value={clavePago} onChange={e => setClavePago(e.target.value)} style={{ width:'100%' }} maxLength={100} placeholder="Ingresa la contraseña del usuario" />
-          </label>
+        <div className="form-group">
+          <label htmlFor="clave-pago">Contraseña para descifrar:</label>
+          <input
+            id="clave-pago"
+            type="password"
+            value={clavePago}
+            onChange={e => setClavePago(e.target.value)}
+            maxLength={100}
+            placeholder="Contraseña de tu clave privada"
+          />
         </div>
-        <button type="submit" disabled={loading}>Transferir</button>
+        <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: 12, fontSize: 18, fontWeight: 600 }}>
+          {loading ? 'Procesando...' : 'Transferir'}
+        </button>
       </form>
-      {mensaje && <div style={{ color: 'green', marginTop: 16 }}>{mensaje}</div>}
-      {error && <div style={{ color: 'red', marginTop: 16 }}>{error}</div>}
-      <div style={{ fontSize: '0.95em', color: '#555', marginBottom: 12 }}>
+      {mensaje && <div className="success" style={{ marginTop: 16 }}>{mensaje}</div>}
+      {error && <div className="error" style={{ marginTop: 16 }}>{error}</div>}
+      <div className="transfer-hint">
         Si usas el mismo navegador donde te registraste o iniciaste sesión, no necesitas pegar nada. Solo si migras a otro navegador/dispositivo, pega tu clave cifrada y contraseña.
       </div>
-      <button style={{ marginTop: 24 }} onClick={() => navigate('/')}>Volver</button>
+      <button className="btn-secondary" style={{ marginTop: 24 }} onClick={() => navigate('/')}>Volver</button>
     </div>
   );
 }
