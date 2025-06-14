@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../services/authService';
+import { useTheme } from '../theme/ThemeProvider';
 
 export default function LoginPage() {
   const [nombre, setNombre] = useState('');
   const [contrasena, setContrasena] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { setMode } = useTheme();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,6 +25,7 @@ export default function LoginPage() {
         localStorage.setItem('privateKeyTag', res.privateKeyTag);
         if (contrasena) localStorage.setItem('privateKeyPass', contrasena);
       }
+      setMode('dark'); // Activa modo oscuro al iniciar sesión
       navigate('/inicio'); // Redirige a la página de bienvenida
     } catch (err: any) {
       setError(err.message || 'Error al iniciar sesión');
@@ -30,7 +33,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="login-container">
+    <div className="login-container card fade-in">
       <h2>Iniciar sesión</h2>
       <form onSubmit={handleSubmit}>
         <input

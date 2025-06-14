@@ -24,6 +24,8 @@ def create_app():
     app.register_blueprint(bp_dash, url_prefix='/api', name='routes_dash_api')
     from .models import pagos_bp
     app.register_blueprint(pagos_bp)
+    from .chatbot_nlp import bp as chatbot_bp
+    app.register_blueprint(chatbot_bp, url_prefix='/api')
 
     # Imprimir todas las rutas registradas
     print("=== RUTAS REGISTRADAS EN FLASK ===")

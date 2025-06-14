@@ -1,14 +1,19 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import Inicio from './pages/inicio';
 import PagosSeguros from './pages/PagosSeguros';
 import TransferenciaUsuario from './pages/TransferenciaUsuario';
 import Dashboard from './pages/Dashboard/Dashboard';
+import Navbar from './components/Navbar';
 
-function App() {
+function AppRoutes() {
+  const location = useLocation();
+  // Ocultar navbar en login, registro e inicio
+  const hideNavbar = ['/login', '/registro', '/inicio'].includes(location.pathname);
   return (
-    <BrowserRouter>
+    <>
+      {!hideNavbar && <Navbar />}
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/registro" element={<RegisterPage />} />
@@ -16,9 +21,16 @@ function App() {
         <Route path="/pagos-seguros" element={<PagosSeguros />} />
         <Route path="/transferencia-usuario" element={<TransferenciaUsuario />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        {/* Puedes agregar más rutas aquí, por ejemplo Dashboard */}
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
     </BrowserRouter>
   );
 }

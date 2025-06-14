@@ -545,3 +545,32 @@ def actualizar_vencimiento_solicitud(id_solicitud):
     solicitud.fecha_vencimiento = fecha_vencimiento
     db.session.commit()
     return jsonify({'mensaje': 'Fecha de vencimiento actualizada'})
+
+# --- CHATBOT ---
+@bp.route('/chatbot', methods=['POST'])
+def chatbot():
+    data = request.json
+    mensaje = data.get('mensaje', '').lower()
+    # Respuestas informativas ampliadas
+    if 'tarjeta' in mensaje:
+        return jsonify({'respuesta': 'Para registrar una tarjeta, ve a la sección “Mis tarjetas”, haz clic en “Agregar tarjeta” y completa los datos requeridos. Puedes ver tus tarjetas en el menú principal.'})
+    if 'pago' in mensaje or 'transferencia' in mensaje:
+        return jsonify({'respuesta': 'Para realizar un pago o transferencia, ve a la sección de solicitudes o transferencias, selecciona el destinatario, la cuenta y sigue los pasos. Puedes usar firma digital para mayor seguridad.'})
+    if 'saldo' in mensaje:
+        return jsonify({'respuesta': 'Puedes consultar tu saldo en la sección “Cuentas” o preguntándome aquí “¿Cuál es mi saldo?”. Si quieres ver el historial, ve a la sección de transacciones.'})
+    if 'blockchain' in mensaje:
+        return jsonify({'respuesta': 'La blockchain registra todas las transacciones de forma inmutable y segura. Puedes ver el historial en la sección de auditoría o preguntarme sobre la integridad de tus pagos.'})
+    if 'dispositivo' in mensaje or 'ubicación' in mensaje:
+        return jsonify({'respuesta': 'Cada vez que realizas un pago, se registra el dispositivo y la ubicación desde donde lo hiciste. Puedes ver tus dispositivos en tu perfil.'})
+    if 'empresa' in mensaje:
+        return jsonify({'respuesta': 'Puedes realizar pagos a empresas si están registradas en la plataforma. Solicita a la empresa su código o búscala en la sección de pagos a empresas.'})
+    if 'firma digital' in mensaje:
+        return jsonify({'respuesta': 'La firma digital garantiza que solo tú puedes autorizar pagos. Debes usar tu clave privada cifrada y tu contraseña para firmar.'})
+    if 'usuario' in mensaje or 'registrar' in mensaje:
+        return jsonify({'respuesta': 'Para registrarte, ve a la sección de registro, completa tus datos y sigue las instrucciones. Recibirás claves criptográficas para mayor seguridad.'})
+    if 'solicitud' in mensaje:
+        return jsonify({'respuesta': 'Puedes crear solicitudes de pago a otros usuarios y aceptar o rechazar las que recibas. Ve a la sección de solicitudes para gestionarlas.'})
+    if 'ayuda' in mensaje or 'help' in mensaje:
+        return jsonify({'respuesta': 'Puedo ayudarte a: realizar pagos, consultar tu saldo, registrar tarjetas, ver tu historial, gestionar dispositivos, usar firma digital y más. ¿Sobre qué tema necesitas ayuda?'})
+    # Respuesta por defecto
+    return jsonify({'respuesta': 'No entendí tu mensaje. Puedes preguntarme sobre pagos, tarjetas, saldo, blockchain, dispositivos, empresas, firma digital, usuarios, solicitudes o escribir “ayuda”.'})

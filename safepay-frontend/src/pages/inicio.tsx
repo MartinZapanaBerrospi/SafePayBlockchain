@@ -6,7 +6,6 @@ export default function Inicio() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Intentar obtener el nombre de usuario del localStorage si lo guardaste en el login
     const userData = localStorage.getItem('userData');
     if (userData) {
       try {
@@ -19,12 +18,18 @@ export default function Inicio() {
   }, []);
 
   return (
-    <div style={{ textAlign: 'center', marginTop: '3rem' }}>
+    <div className="welcome-panel fade-in">
       <h2>Bienvenido{nombre ? `, ${nombre}` : ''}!</h2>
-      <div style={{ marginTop: '2rem' }}>
-        <button style={{ marginRight: 16 }} onClick={() => navigate('/transferencia-usuario')}>Transferencia a usuario</button>
-        <button style={{ marginRight: 16 }} onClick={() => navigate('/pagos-seguros')}>Pagos seguros</button>
-        <button onClick={() => navigate('/dashboard')}>Dashboard</button>
+      <div className="welcome-btns">
+        <button onClick={() => navigate('/transferencia-usuario')}>
+          <span role="img" aria-label="transfer">💸</span> Transferencia a usuario
+        </button>
+        <button onClick={() => navigate('/pagos-seguros')}>
+          <span role="img" aria-label="pagos">💳</span> Pagos seguros
+        </button>
+        <button onClick={() => navigate('/dashboard')}>
+          <span role="img" aria-label="dashboard">📊</span> Dashboard
+        </button>
       </div>
     </div>
   );
