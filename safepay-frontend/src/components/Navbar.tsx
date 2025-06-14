@@ -16,6 +16,9 @@ const Navbar: React.FC = () => {
   const handleLogout = () => {
     localStorage.clear(); // Borra todo el localStorage para asegurar cierre de sesión
     navigate('/login');
+    setTimeout(() => {
+      window.location.reload(); // Fuerza recarga para evitar volver atrás a sesión activa
+    }, 100);
   };
 
   return (

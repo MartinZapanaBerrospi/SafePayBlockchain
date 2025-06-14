@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../services/authService';
 import { useTheme } from '../theme/ThemeProvider';
@@ -9,6 +9,14 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { setMode } = useTheme();
+
+  // Redirigir automáticamente si ya hay sesión activa
+  useEffect(() => {
+    const userData = localStorage.getItem('userData');
+    if (userData) {
+      navigate('/inicio');
+    }
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
