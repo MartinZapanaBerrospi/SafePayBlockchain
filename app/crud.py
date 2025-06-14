@@ -227,7 +227,8 @@ def listar_solicitudes():
         'monto': float(s.monto),
         'mensaje': s.mensaje,
         'estado': s.estado,
-        'fecha_solicitud': s.fecha_solicitud
+        'fecha_solicitud': s.fecha_solicitud,
+        'fecha_vencimiento': s.fecha_vencimiento
     } for s in solicitudes])
 
 @bp.route('/solicitudes/<int:id_solicitud>', methods=['GET'])

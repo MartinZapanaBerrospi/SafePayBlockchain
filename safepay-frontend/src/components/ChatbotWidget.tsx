@@ -15,11 +15,9 @@ const sugerenciasSinSesion = [
 ];
 const sugerenciasConSesion = [
   '¿Cuál es mi saldo?',
-  '¿Cómo hago una transferencia?',
-  '¿Cómo registro una tarjeta?',
-  '¿Cómo consulto mi historial?',
-  '¿Cómo solicito un pago?',
-  '¿Cómo registro un dispositivo?',
+  '¿Cuáles son mis últimas transacciones?',
+  '¿Cuántas tarjetas tengo registradas?',
+  '¿Cuántas solicitudes de pago tengo?',
   'Ayuda'
 ];
 

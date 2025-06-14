@@ -9,6 +9,7 @@ interface Solicitud {
   mensaje: string;
   estado: string;
   fecha_solicitud: string;
+  fecha_vencimiento?: string;
 }
 
 export default function PagosSeguros() {
@@ -28,6 +29,15 @@ export default function PagosSeguros() {
   const [latitud, setLatitud] = useState<number|null>(null);
   const [longitud, setLongitud] = useState<number|null>(null);
   const [nombreDispositivo, setNombreDispositivo] = useState('');
+
+  // --- NUEVO: Formulario para crear solicitud de pago ---
+  const [showCrear, setShowCrear] = useState(false);
+  const [nuevoDestinatario, setNuevoDestinatario] = useState('');
+  const [nuevoMonto, setNuevoMonto] = useState('');
+  const [nuevoMensaje, setNuevoMensaje] = useState('');
+  const [nuevoFechaVencimiento, setNuevoFechaVencimiento] = useState('');
+  const [crearError, setCrearError] = useState('');
+  const [crearExito, setCrearExito] = useState('');
 
   useEffect(() => {
     const userData = localStorage.getItem('userData');
@@ -264,9 +274,85 @@ export default function PagosSeguros() {
     }
   };
 
+  const handleCrearSolicitud = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCrearError('');
+    setCrearExito('');
+    if (!nuevoDestinatario || !nuevoMonto || !nuevoFechaVencimiento) {
+      setCrearError('Debes ingresar destinatario, monto y fecha de vencimiento.');
+      return;
+    }
+    let id_usuario = null;
+    const userData = localStorage.getItem('userData');
+    if (userData) {
+      try {
+        const parsed = JSON.parse(userData);
+        id_usuario = parsed.id_usuario;
+      } catch {}
+    }
+    if (!id_usuario) {
+      setCrearError('No se pudo obtener el usuario actual.');
+      return;
+    }
+    try {
+      const res = await fetch('/api/solicitudes/crear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ solicitante: id_usuario, destinatario: nuevoDestinatario, monto: nuevoMonto, mensaje: nuevoMensaje, fecha_vencimiento: nuevoFechaVencimiento })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCrearExito('Solicitud creada correctamente.');
+        setNuevoDestinatario('');
+        setNuevoMonto('');
+        setNuevoMensaje('');
+        setNuevoFechaVencimiento('');
+        setShowCrear(false);
+        // Recargar solicitudes sin recargar la página
+        fetch(`/api/solicitudes`)
+          .then(res => res.json())
+          .then(data => {
+            const activas = data.filter((s: Solicitud) => s.destinatario === id_usuario && s.estado === 'pendiente');
+            setSolicitudes(activas);
+          });
+      } else {
+        setCrearError(data.mensaje || 'Error al crear solicitud.');
+      }
+    } catch (e) {
+      setCrearError('Error al crear solicitud.');
+    }
+  };
+
   return (
     <div style={{ maxWidth: 600, margin: '2rem auto' }}>
       <h2>Solicitudes de pago activas</h2>
+      <button className="btn-primary" style={{ marginBottom: 24 }} onClick={() => setShowCrear(v => !v)}>
+        {showCrear ? 'Cancelar' : 'Crear solicitud de pago'}
+      </button>
+      {showCrear && (
+        <form className="solicitud-form" onSubmit={handleCrearSolicitud} style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-border)', borderRadius: 12, boxShadow: '0 2px 8px #2563eb20', padding: 24, marginBottom: 24 }}>
+          <h3 style={{ color: 'var(--color-primary)', marginBottom: 16 }}>Nueva solicitud de pago</h3>
+          <div className="form-group">
+            <label>Destinatario (usuario o correo):</label>
+            <input value={nuevoDestinatario} onChange={e => setNuevoDestinatario(e.target.value)} required placeholder="Usuario o correo" style={{ width: '100%' }} />
+          </div>
+          <div className="form-group">
+            <label>Monto:</label>
+            <input type="number" min="0.01" step="0.01" value={nuevoMonto} onChange={e => setNuevoMonto(e.target.value)} required placeholder="Monto a solicitar" style={{ width: '100%' }} />
+          </div>
+          <div className="form-group">
+            <label>Mensaje (opcional):</label>
+            <input value={nuevoMensaje} onChange={e => setNuevoMensaje(e.target.value)} placeholder="Motivo o referencia" style={{ width: '100%' }} />
+          </div>
+          <div className="form-group">
+            <label>Fecha de vencimiento:</label>
+            <input type="date" value={nuevoFechaVencimiento} onChange={e => setNuevoFechaVencimiento(e.target.value)} required style={{ width: '100%' }} />
+          </div>
+          {crearError && <div className="error" style={{ marginBottom: 8 }}>{crearError}</div>}
+          {crearExito && <div className="success" style={{ marginBottom: 8 }}>{crearExito}</div>}
+          <button className="btn-primary" type="submit" style={{ width: '100%', fontSize: 16, fontWeight: 600, marginTop: 8 }}>Crear solicitud</button>
+        </form>
+      )}
       {error && <p className="error">{error}</p>}
       {solicitudes.length === 0 && <p>No tienes solicitudes de pago pendientes.</p>}
       {solicitudes.map(s => (
@@ -274,6 +360,7 @@ export default function PagosSeguros() {
           <p><b>De:</b> {nombres[s.solicitante] || s.solicitante}</p>
           <p><b>Monto:</b> {s.monto} USD</p>
           <p><b>Mensaje:</b> {s.mensaje}</p>
+          <p><b>Vence:</b> {s.fecha_vencimiento ? new Date(s.fecha_vencimiento).toLocaleDateString() : 'Sin fecha'}</p>
           <button style={{ marginTop: 8 }} onClick={() => abrirModal(s)}>Pagar</button>
         </div>
       ))}

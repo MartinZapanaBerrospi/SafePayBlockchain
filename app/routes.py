@@ -600,15 +600,25 @@ def chatbot():
 
     RESPUESTAS_DINAMICAS = {
         'consultar_saldo': lambda usuario: f"Tu saldo actual es S/ {usuario.cuenta.saldo:.2f}" if usuario and hasattr(usuario, 'cuenta') else "No se pudo obtener tu saldo.",
-        'consultar_historial': lambda usuario: f"Tus últimas transacciones: {', '.join([f'S/ {t.monto:.2f} a {getattr(t, 'destinatario', 'N/A')}' for t in getattr(usuario, 'transacciones', [])])}" if usuario and hasattr(usuario, 'transacciones') and usuario.transacciones else "No se encontraron transacciones.",
-        'consultar_tarjetas': lambda usuario: f"Tienes {len(getattr(usuario, 'tarjetas', []))} tarjeta(s) registrada(s)." if usuario and hasattr(usuario, 'tarjetas') else "No se encontraron tarjetas.",
-        'consultar_solicitudes': lambda usuario: f"Tienes {len(getattr(usuario, 'solicitudes', []))} solicitud(es) de pago." if usuario and hasattr(usuario, 'solicitudes') else "No se encontraron solicitudes.",
-        'consultar_dispositivos': lambda usuario: f"Tienes {len(getattr(usuario, 'dispositivos', []))} dispositivo(s) registrados." if usuario and hasattr(usuario, 'dispositivos') else "No se encontraron dispositivos.",
-        'ayuda': lambda usuario: 'Puedo ayudarte a: consultar saldo, historial, tarjetas, solicitudes, dispositivos, o darte información general.',
-        'info_general': lambda usuario: 'SafePay es una plataforma de pagos segura basada en blockchain, diseñada para facilitar transferencias, gestión de tarjetas y solicitudes de pago de manera confiable.',
-        'registro': lambda usuario: 'Para registrarte, haz clic en “Crear usuario” en la pantalla de inicio de sesión y completa tus datos.',
-        'funciones': lambda usuario: 'SafePay permite: transferencias seguras, gestión de tarjetas, solicitudes de pago, registro de dispositivos y consulta de historial.',
-        'que_es_safepay': lambda usuario: 'SafePay es una solución digital de pagos y transferencias con tecnología blockchain, pensada para seguridad y transparencia.'
+        'consultar_historial': lambda usuario: (
+            "Tus últimas transacciones: " +
+            ", ".join([
+                f"S/ {t.monto:.2f} retirados" if es_retiro(t, usuario) else f"S/ {t.monto:.2f} a {t.destinatario if getattr(t, 'destinatario', None) else obtener_nombre_destinatario(t, usuario)}"
+                for t in getattr(usuario, 'transacciones', [])
+            ])
+            if usuario and hasattr(usuario, 'transacciones') and usuario.transacciones else "No se encontraron transacciones."
+        ),
+        'consultar_tarjetas': lambda usuario: (
+            f"Tienes {len(getattr(usuario, 'tarjetas', []))} tarjeta(s) registrada(s)."
+            if usuario and hasattr(usuario, 'tarjetas') else "No se encontraron tarjetas."
+        ),
+        'consultar_solicitudes': lambda usuario: (
+            f"Tienes {len([s for s in getattr(usuario, 'solicitudes', []) if getattr(s, 'estado', '') == 'pendiente'])} solicitud(es) de pago pendientes."
+            if usuario and hasattr(usuario, 'solicitudes') else "No se encontraron solicitudes."
+        ),
+        'ayuda': lambda usuario: (
+            'Puedo ayudarte a: consultar saldo, ver tus últimas transacciones, ver tus tarjetas registradas, ver tus solicitudes de pago o pedir ayuda.'
+        ),
     }
     INTENCIONES_TRANSACCIONALES = [
         'consultar_saldo', 'consultar_historial', 'consultar_tarjetas',
@@ -631,9 +641,9 @@ def chatbot():
             return jsonify({'respuesta': '¡Hasta luego! Si tienes más preguntas, aquí estaré.'})
         if intencion_llm.lower() == 'ayuda':
             return jsonify({'respuesta': RESPUESTAS_DINAMICAS['ayuda'](usuario)})
-        if intencion_llm.lower() == 'información general':
+        if intencion_llm.lower() == 'información_general':
             return jsonify({'respuesta': RESPUESTAS_DINAMICAS['info_general'](usuario)})
-        if intencion_llm.lower() == 'registro de usuario':
+        if intencion_llm.lower() == 'registro_de_usuario':
             return jsonify({'respuesta': RESPUESTAS_DINAMICAS['registro'](usuario)})
         # Si no se reconoce la intención, pedir a Qwen que genere una respuesta profesional
         respuesta_ia = classify_intent_llm(mensaje, modo='respuesta')
@@ -672,3 +682,62 @@ def retirar_dinero(id_usuario):
     db.session.add(transaccion)
     db.session.commit()
     return jsonify({'mensaje': 'Retiro realizado', 'nuevo_saldo': str(cuenta.saldo)}), 200
+
+def obtener_nombre_destinatario(transaccion, usuario):
+    # Busca el nombre del destinatario a partir del id de cuenta_destino
+    from app.models import Cuenta, Usuario
+    if hasattr(transaccion, 'cuenta_destino'):
+        cuenta = Cuenta.query.filter_by(id_cuenta=transaccion.cuenta_destino).first()
+        if cuenta and cuenta.id_usuario != usuario.id_usuario:
+            usuario_dest = Usuario.query.filter_by(id_usuario=cuenta.id_usuario).first()
+            if usuario_dest:
+                return usuario_dest.nombre
+    return 'otro usuario'
+
+def es_retiro(transaccion, usuario):
+    # Un retiro es cuando la cuenta origen y destino son la misma y es del usuario
+    return hasattr(transaccion, 'cuenta_origen') and hasattr(transaccion, 'cuenta_destino') and transaccion.cuenta_origen == transaccion.cuenta_destino and hasattr(usuario, 'cuenta') and transaccion.cuenta_origen == usuario.cuenta.id_cuenta
+
+@bp.route('/solicitudes/crear', methods=['POST'])
+def crear_solicitud_pago():
+    data = request.get_json()
+    user_data = request.headers.get('Authorization')
+    # Aquí podrías usar JWT o session para obtener el usuario actual
+    # Por simplicidad, asumimos que el id_usuario viene en el body o en el token
+    id_usuario = None
+    if user_data and user_data.startswith('Bearer '):
+        # Extraer id_usuario del JWT si lo usas
+        pass
+    if not id_usuario:
+        # Fallback: intentar obtener de sesión o body
+        id_usuario = data.get('solicitante')
+    if not id_usuario:
+        # Fallback: intentar obtener de userData en frontend
+        userData = request.cookies.get('userData')
+        if userData:
+            import json
+            try:
+                id_usuario = json.loads(userData).get('id_usuario')
+            except:
+                pass
+    destinatario = data.get('destinatario')
+    monto = data.get('monto')
+    mensaje = data.get('mensaje', '')
+    fecha_vencimiento = data.get('fecha_vencimiento')
+    if not id_usuario or not destinatario or not monto or not fecha_vencimiento:
+        return jsonify({'mensaje': 'Faltan datos para crear la solicitud.'}), 400
+    # Buscar destinatario por nombre o correo
+    usuario_dest = Usuario.query.filter((Usuario.nombre == destinatario) | (Usuario.correo == destinatario)).first()
+    if not usuario_dest:
+        return jsonify({'mensaje': 'No se encontró el destinatario.'}), 404
+    solicitud = SolicitudPago(
+        solicitante=id_usuario,
+        destinatario=usuario_dest.id_usuario,
+        monto=monto,
+        mensaje=mensaje,
+        estado='pendiente',
+        fecha_vencimiento=fecha_vencimiento
+    )
+    db.session.add(solicitud)
+    db.session.commit()
+    return jsonify({'mensaje': 'Solicitud de pago creada correctamente.', 'id_solicitud': solicitud.id_solicitud}), 200

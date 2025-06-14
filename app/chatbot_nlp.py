@@ -11,15 +11,21 @@ bp = Blueprint('chatbot', __name__)
 # Respuestas dinámicas según intención y sesión
 RESPUESTAS_DINAMICAS = {
     'consultar_saldo': lambda usuario: f"Tu saldo actual es S/ {usuario.cuenta.saldo:.2f}" if usuario and hasattr(usuario, 'cuenta') else "No se pudo obtener tu saldo.",
-    'consultar_historial': lambda usuario: f"Tus últimas transacciones: {', '.join([f'S/ {t.monto:.2f} a {t.destinatario}' for t in getattr(usuario, 'transacciones', [])])}" if usuario and hasattr(usuario, 'transacciones') and usuario.transacciones else "No se encontraron transacciones.",
-    'consultar_tarjetas': lambda usuario: f"Tienes {len(getattr(usuario, 'tarjetas', []))} tarjeta(s) registrada(s)." if usuario and hasattr(usuario, 'tarjetas') else "No se encontraron tarjetas.",
-    'consultar_solicitudes': lambda usuario: f"Tienes {len(getattr(usuario, 'solicitudes', []))} solicitud(es) de pago." if usuario and hasattr(usuario, 'solicitudes') else "No se encontraron solicitudes.",
-    'consultar_dispositivos': lambda usuario: f"Tienes {len(getattr(usuario, 'dispositivos', []))} dispositivo(s) registrados." if usuario and hasattr(usuario, 'dispositivos') else "No se encontraron dispositivos.",
-    'ayuda': lambda usuario: 'Puedo ayudarte a: consultar saldo, historial, tarjetas, solicitudes, dispositivos, o darte información general.',
-    'info_general': lambda usuario: 'SafePay es una plataforma de pagos segura basada en blockchain, diseñada para facilitar transferencias, gestión de tarjetas y solicitudes de pago de manera confiable.',
-    'registro': lambda usuario: 'Para registrarte, haz clic en “Crear usuario” en la pantalla de inicio de sesión y completa tus datos.',
-    'funciones': lambda usuario: 'SafePay permite: transferencias seguras, gestión de tarjetas, solicitudes de pago, registro de dispositivos y consulta de historial.',
-    'que_es_safepay': lambda usuario: 'SafePay es una solución digital de pagos y transferencias con tecnología blockchain, pensada para seguridad y transparencia.'
+    'consultar_historial': lambda usuario: (
+        f"Tus últimas transacciones: {', '.join([f'S/ {t.monto:.2f} a {t.destinatario}' for t in getattr(usuario, 'transacciones', [])])}"
+        if usuario and hasattr(usuario, 'transacciones') and usuario.transacciones else "No se encontraron transacciones."
+    ),
+    'consultar_tarjetas': lambda usuario: (
+        f"Tienes {len(getattr(usuario, 'tarjetas', []))} tarjeta(s) registrada(s)."
+        if usuario and hasattr(usuario, 'tarjetas') else "No se encontraron tarjetas."
+    ),
+    'consultar_solicitudes': lambda usuario: (
+        f"Tienes {len(getattr(usuario, 'solicitudes', []))} solicitud(es) de pago."
+        if usuario and hasattr(usuario, 'solicitudes') else "No se encontraron solicitudes."
+    ),
+    'ayuda': lambda usuario: (
+        'Puedo ayudarte a: consultar saldo, ver tus últimas transacciones, ver tus tarjetas registradas, ver tus solicitudes de pago o pedir ayuda.'
+    ),
 }
 
 def obtener_usuario_desde_token(token):
