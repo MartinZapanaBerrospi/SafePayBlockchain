@@ -64,6 +64,17 @@ const INTENT_RESPONSES_CON_SESION = {
   agradecimiento: '¡Con gusto! Si necesitas realizar una consulta o transacción, solo dime.',
 };
 
+// Unificar intenciones de saludo y agradecimiento para ambos modos
+const INTENT_KEYWORDS_COMUN = [
+  { intent: 'saludo', keywords: ['hola', 'buenas', 'buenos días', 'buenas tardes', 'buenas noches', 'qué tal', 'saludos', 'hey', 'holi', 'hello', 'hi'] },
+  { intent: 'agradecimiento', keywords: ['gracias', 'muchas gracias', 'te agradezco', 'thank you', 'thanks'] },
+];
+
+const INTENT_RESPONSES_COMUN = {
+  saludo: '¡Hola! ¿En qué puedo ayudarte hoy?',
+  agradecimiento: '¡Con gusto! Si necesitas más información o ayuda, solo dime.',
+};
+
 function detectarIntencion(texto: string): keyof typeof INTENT_RESPONSES | 'desconocida' {
   const lower = texto.toLowerCase();
   for (const { intent, keywords } of INTENT_KEYWORDS) {
@@ -76,6 +87,14 @@ function detectarIntencionConSesion(texto: string): keyof typeof INTENT_RESPONSE
   const lower = texto.toLowerCase();
   for (const { intent, keywords } of INTENT_KEYWORDS_CON_SESION) {
     if (keywords.some(k => lower.includes(k))) return intent as keyof typeof INTENT_RESPONSES_CON_SESION;
+  }
+  return 'desconocida';
+}
+
+function detectarIntencionComun(texto: string): keyof typeof INTENT_RESPONSES_COMUN | 'desconocida' {
+  const lower = texto.toLowerCase();
+  for (const { intent, keywords } of INTENT_KEYWORDS_COMUN) {
+    if (keywords.some(k => lower.includes(k))) return intent as keyof typeof INTENT_RESPONSES_COMUN;
   }
   return 'desconocida';
 }
@@ -127,6 +146,15 @@ const ChatbotWidget: React.FC = () => {
   const enviarMensaje = async (texto: string) => {
     setMensajes(m => [...m, { autor: 'usuario', texto }]);
     setEnviando(true);
+    // Detección global de saludo y agradecimiento
+    const intentComun = detectarIntencionComun(texto);
+    if (intentComun !== 'desconocida') {
+      setTimeout(() => {
+        setMensajes(m => [...m, { autor: 'bot', texto: INTENT_RESPONSES_COMUN[intentComun] }]);
+        setEnviando(false);
+      }, 500);
+      return;
+    }
     if (!logueado) {
       // Detección de intenciones local antes de login
       const intent = detectarIntencion(texto);
