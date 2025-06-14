@@ -68,47 +68,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: 320, background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #0001', padding: 20 }}>
-              <h3 style={{ marginBottom: 12 }}>Top 5 usuarios con más transacciones</h3>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: '#f5f5f5' }}>
-                    <th style={{ textAlign: 'left', padding: 8 }}>Usuario</th>
-                    <th style={{ textAlign: 'right', padding: 8 }}>Transacciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {indicadores?.top_transacciones?.length ? indicadores.top_transacciones.map((item: any, idx: number) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={{ padding: 8 }}>{item.usuario}</td>
-                      <td style={{ padding: 8, textAlign: 'right' }}>{item.transacciones}</td>
-                    </tr>
-                  )) : <tr><td colSpan={2} style={{ textAlign: 'center', padding: 12 }}>Sin datos</td></tr>}
-                </tbody>
-              </table>
-            </div>
-            <div style={{ flex: 1, minWidth: 320, background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #0001', padding: 20 }}>
-              <h3 style={{ marginBottom: 12 }}>Top 5 usuarios con más dinero movido</h3>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: '#f5f5f5' }}>
-                    <th style={{ textAlign: 'left', padding: 8 }}>Usuario</th>
-                    <th style={{ textAlign: 'right', padding: 8 }}>Monto</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {indicadores?.top_montos?.length ? indicadores.top_montos.map((item: any, idx: number) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={{ padding: 8 }}>{item.usuario}</td>
-                      <td style={{ padding: 8, textAlign: 'right' }}>{item.monto.toLocaleString('es-PE', { style: 'currency', currency: 'PEN' })}</td>
-                    </tr>
-                  )) : <tr><td colSpan={2} style={{ textAlign: 'center', padding: 12 }}>Sin datos</td></tr>}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
           <div style={{ margin: '40px 0', background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #0001', padding: 24 }}>
             <h3 style={{ marginBottom: 16 }}>Actividad de transacciones (últimos 30 días)</h3>
             <ResponsiveContainer width="100%" height={300}>
@@ -176,6 +135,41 @@ export default function Dashboard() {
                   <YAxis allowDecimals={false} />
                   <Tooltip formatter={(v: any) => `${v} usuarios`} labelFormatter={l => `Fecha: ${l}`} />
                   <Bar dataKey="cantidad" fill="#43a047" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', margin: '40px 0' }}>
+            <div style={{ flex: 1, minWidth: 320, background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #0001', padding: 24 }}>
+              <h3 style={{ marginBottom: 16 }}>Top 5 usuarios con más transacciones</h3>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart
+                  data={indicadores?.top_transacciones || []}
+                  layout="vertical"
+                  margin={{ left: 40, right: 20, top: 10, bottom: 10 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" allowDecimals={false} />
+                  <YAxis dataKey="usuario" type="category" width={120} />
+                  <Tooltip formatter={(v: any) => `${v} transacciones`} />
+                  <Bar dataKey="transacciones" fill="#1976d2" barSize={24} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div style={{ flex: 1, minWidth: 320, background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #0001', padding: 24 }}>
+              <h3 style={{ marginBottom: 16 }}>Top 5 usuarios con más dinero movido</h3>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart
+                  data={indicadores?.top_montos || []}
+                  layout="vertical"
+                  margin={{ left: 40, right: 20, top: 10, bottom: 10 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" tickFormatter={v => v.toLocaleString('es-PE', { style: 'currency', currency: 'PEN' })} />
+                  <YAxis dataKey="usuario" type="category" width={120} />
+                  <Tooltip formatter={(v: any) => `${v.toLocaleString('es-PE', { style: 'currency', currency: 'PEN' })}`} />
+                  <Bar dataKey="monto" fill="#43a047" barSize={24} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
