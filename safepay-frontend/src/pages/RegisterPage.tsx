@@ -9,21 +9,26 @@ export default function RegisterPage() {
   const [contrasena, setContrasena] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [clavePrivada, setClavePrivada] = useState<string | null>(null);
   const [clavePrivadaCifrada, setClavePrivadaCifrada] = useState<string | null>(null);
   const [showClaveModal, setShowClaveModal] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Validaciones en tiempo real
+  const isEmailValid = correo.match(/^\S+@\S+\.\S+$/);
+  const isPasswordStrong = contrasena.length >= 8;
+  const isFormValid = nombre && isEmailValid && isPasswordStrong;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
-    setClavePrivada(null);
     setClavePrivadaCifrada(null);
     setShowClaveModal(false);
+    setLoading(true);
     try {
       const res = await register(nombre, correo, telefono, contrasena);
-      // Formato antiguo: concatenar salt + iv + ciphertext + tag en base64
+      // Adaptar para backend que devuelve privateKeyEnc, privateKeyIv, privateKeySalt, privateKeyTag
       if (res.privateKeyEnc && res.privateKeyIv && res.privateKeySalt && res.privateKeyTag) {
         // Decodificar cada parte
         const salt = atob(res.privateKeySalt.replace(/-/g, '+').replace(/_/g, '/'));
@@ -38,7 +43,7 @@ export default function RegisterPage() {
             allBytes[offset++] = part.charCodeAt(i);
           }
         });
-        // Codificar todo en base64 (formato antiguo)
+        // Codificar todo en base64
         const claveCifrada = btoa(String.fromCharCode(...allBytes));
         setClavePrivadaCifrada(claveCifrada);
         setShowClaveModal(true);
@@ -52,93 +57,140 @@ export default function RegisterPage() {
       }
     } catch (err: any) {
       setError(err.message || 'Error al crear usuario');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="register-container">
-      <h2>Crear usuario</h2>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Nombre"
-          value={nombre}
-          onChange={e => setNombre(e.target.value)}
-          required
-        />
-        <input
-          type="email"
-          placeholder="Correo"
-          value={correo}
-          onChange={e => setCorreo(e.target.value)}
-          required
-        />
-        <input
-          type="text"
-          placeholder="Teléfono"
-          value={telefono}
-          onChange={e => setTelefono(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="Contraseña"
-          value={contrasena}
-          onChange={e => setContrasena(e.target.value)}
-          required
-        />
-        <button type="submit">Crear usuario</button>
+    <div className="register-container" style={{ maxWidth: 400, margin: '2rem auto', background: 'var(--color-card)', borderRadius: 12, boxShadow: '0 2px 12px #2563eb22', padding: 32 }}>
+      <h2 style={{ textAlign: 'center', color: 'var(--color-primary)' }}>Crear cuenta SafePay</h2>
+      <form onSubmit={handleSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <label>
+          Nombre completo
+          <input
+            type="text"
+            placeholder="Nombre"
+            value={nombre}
+            onChange={e => setNombre(e.target.value)}
+            required
+            autoFocus
+            style={{ width: '100%' }}
+          />
+        </label>
+        <label>
+          Correo electrónico
+          <input
+            type="email"
+            placeholder="Correo"
+            value={correo}
+            onChange={e => setCorreo(e.target.value)}
+            required
+            style={{ width: '100%' }}
+          />
+          {!isEmailValid && correo && <span style={{ color: '#b71c1c', fontSize: 12 }}>Correo no válido</span>}
+        </label>
+        <label>
+          Teléfono (opcional)
+          <input
+            type="text"
+            placeholder="Teléfono"
+            value={telefono}
+            onChange={e => setTelefono(e.target.value)}
+            style={{ width: '100%' }}
+          />
+        </label>
+        <label>
+          Contraseña
+          <input
+            type="password"
+            placeholder="Contraseña (mínimo 8 caracteres)"
+            value={contrasena}
+            onChange={e => setContrasena(e.target.value)}
+            required
+            style={{ width: '100%' }}
+          />
+          {!isPasswordStrong && contrasena && <span style={{ color: '#b71c1c', fontSize: 12 }}>Mínimo 8 caracteres</span>}
+        </label>
+        <button type="submit" className="btn-primary" style={{ fontWeight: 600, fontSize: 16, marginTop: 8 }} disabled={!isFormValid || loading}>
+          {loading ? 'Creando usuario...' : 'Crear usuario'}
+        </button>
       </form>
-      {error && <p className="error">{error}</p>}
+      {error && <div className="error" style={{ color: '#b71c1c', marginTop: 12, textAlign: 'center' }}>{error}</div>}
       {success && (
-        <div style={{ marginTop: 20 }}>
-          <p className="success">{success}</p>
-          {clavePrivadaCifrada && (
-            <div style={{ marginTop: 16, background: '#f5f5f5', borderRadius: 8, padding: 16, textAlign: 'left', position: 'relative' }}>
-              <span style={{ fontWeight: 'bold', color: '#b71c1c' }}>Clave privada cifrada:</span>
-              <div style={{ margin: '8px 0', display: 'flex', alignItems: 'center' }}>
-                <input
-                  type="text"
-                  value={clavePrivadaCifrada}
-                  readOnly
-                  style={{ width: '100%', fontFamily: 'monospace', fontSize: 13, background: '#eee', border: '1px solid #ccc', borderRadius: 4, padding: 6 }}
-                />
-                <button
-                  style={{ marginLeft: 8, fontSize: 13, padding: '6px 10px' }}
-                  onClick={() => { if(clavePrivadaCifrada) navigator.clipboard.writeText(clavePrivadaCifrada); }}
-                  type="button"
-                >
-                  Copiar
-                </button>
-                <button
-                  style={{ marginLeft: 8, fontSize: 13, padding: '6px 10px' }}
-                  onClick={() => {
-                    if (clavePrivadaCifrada) {
-                      const blob = new Blob([clavePrivadaCifrada], { type: 'text/plain' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = 'clave_privada_cifrada.txt';
-                      document.body.appendChild(a);
-                      a.click();
-                      setTimeout(() => {
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
-                      }, 100);
-                    }
-                  }}
-                  type="button"
-                >
-                  Descargar
-                </button>
-              </div>
-              <div style={{ color:'#888', fontSize:12 }}>Guárdala en un lugar seguro. Solo se muestra aquí una vez. Necesitarás tu contraseña para descifrarla y firmar pagos.</div>
-            </div>
-          )}
+        <div style={{ marginTop: 20, textAlign: 'center' }}>
+          <p className="success" style={{ color: '#2563eb', fontWeight: 600 }}>{success}</p>
         </div>
       )}
-      <p>
-        <button className="link" onClick={() => navigate('/login')}>
-          Iniciar sesión
+      {showClaveModal && clavePrivadaCifrada && (
+        <div style={{
+          marginTop: 36,
+          background: 'linear-gradient(120deg, #fffbe6 0%, #e3f0ff 100%)',
+          borderRadius: 16,
+          padding: 32,
+          textAlign: 'left',
+          border: '2.5px solid #2563eb',
+          boxShadow: '0 4px 24px #2563eb33',
+          position: 'relative',
+          fontSize: 17,
+          maxWidth: 500,
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 18 }}>
+            <span style={{ fontSize: 34, color: '#fbc02d', marginRight: 14 }}>🔒</span>
+            <span style={{ fontWeight: 700, color: '#1a237e', fontSize: 22, letterSpacing: 0.5 }}>
+              ¡Guarda tu clave privada cifrada!
+            </span>
+          </div>
+          <div style={{ margin: '18px 0', display: 'flex', alignItems: 'center', width: '100%' }}>
+            <input
+              type="text"
+              value={clavePrivadaCifrada}
+              readOnly
+              style={{ width: '100%', fontFamily: 'monospace', fontSize: 16, background: '#fffde7', border: '1.5px solid #2563eb', borderRadius: 8, padding: 12, color: '#1a237e', fontWeight: 600, letterSpacing: 0.5 }}
+            />
+            <button
+              style={{ marginLeft: 12, fontSize: 15, padding: '10px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px #2563eb22' }}
+              onClick={() => { if(clavePrivadaCifrada) navigator.clipboard.writeText(clavePrivadaCifrada); }}
+              type="button"
+            >
+              Copiar
+            </button>
+            <button
+              style={{ marginLeft: 10, fontSize: 15, padding: '10px 16px', background: '#43a047', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px #43a04722' }}
+              onClick={() => {
+                if (clavePrivadaCifrada) {
+                  const blob = new Blob([clavePrivadaCifrada], { type: 'text/plain' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'clave_privada_cifrada.txt';
+                  document.body.appendChild(a);
+                  a.click();
+                  setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                  }, 100);
+                }
+              }}
+              type="button"
+            >
+              Descargar
+            </button>
+          </div>
+          <div style={{ color:'#b71c1c', fontSize:16, marginTop: 14, fontWeight: 500, textAlign: 'center', lineHeight: 1.5 }}>
+            Esta clave es única y solo se muestra una vez.<br/>
+            Guárdala en un lugar seguro. La necesitarás junto con tu contraseña para firmar pagos y acceder a funciones avanzadas.
+          </div>
+        </div>
+      )}
+      <p style={{ textAlign: 'center', marginTop: 24 }}>
+        <button className="link" onClick={() => navigate('/login')} style={{ color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontWeight: 600 }}>
+          ¿Ya tienes cuenta? Iniciar sesión
         </button>
       </p>
     </div>
