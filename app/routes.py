@@ -9,6 +9,7 @@ from cryptography.hazmat.primitives import serialization
 import base64
 from blockchain import Blockchain
 from .chatbot_intent_llm import classify_intent_llm
+from mnemonic import Mnemonic
 
 blockchain = Blockchain()
 
@@ -436,25 +437,29 @@ def registrar_usuario():
         return jsonify({'mensaje': 'Faltan datos obligatorios'}), 400
     if Usuario.query.filter_by(nombre=nombre).first() or Usuario.query.filter_by(correo=correo).first():
         return jsonify({'mensaje': 'El usuario o correo ya existe'}), 400
+    # Generar frase de recuperación (mnemonic)
+    mnemo = Mnemonic('english')
+    frase_recuperacion = mnemo.generate(strength=128)  # 12 palabras
+    # Derivar clave privada desde la frase
+    seed = mnemo.to_seed(frase_recuperacion)
+    from hashlib import sha256
+    clave_privada = sha256(seed).digest()
     usuario = Usuario(
         nombre=nombre,
         correo=correo,
-        telefono=telefono
+        telefono=telefono,
+        clave_privada=clave_privada
     )
     usuario.set_contrasena(contrasena)
-    usuario.generar_claves()
     db.session.add(usuario)
     db.session.commit()
-    db.session.refresh(usuario)  # Asegura que id_usuario esté actualizado
-    print(f"[DEBUG] Usuario creado con id: {usuario.id_usuario}")
+    db.session.refresh(usuario)
     # Crear cuenta asociada
     try:
         cuenta = crear_cuenta_usuario(usuario.id_usuario)
-        print(f"[DEBUG] Cuenta creada con id: {cuenta.id_cuenta} para usuario: {usuario.id_usuario}")
     except Exception as e:
-        print(f"[ERROR] No se pudo crear la cuenta: {e}")
         return jsonify({'mensaje': 'Usuario creado pero error al crear la cuenta', 'error': str(e)}), 500
-    # Cifrar la clave privada con la contraseña del usuario (igual que en login)
+    # Cifrar la clave privada con la contraseña del usuario
     from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
     import os, base64
@@ -468,18 +473,57 @@ def registrar_usuario():
     key = kdf.derive(contrasena.encode())
     iv = os.urandom(12)
     aesgcm = AESGCM(key)
-    priv_bytes = usuario.clave_privada.encode() if isinstance(usuario.clave_privada, str) else usuario.clave_privada
-    priv_encrypted = aesgcm.encrypt(iv, priv_bytes, None)
+    priv_encrypted = aesgcm.encrypt(iv, clave_privada, None)
     ciphertext = priv_encrypted[:-16]
     tag = priv_encrypted[-16:]
     return jsonify({
         'mensaje': 'Usuario creado correctamente',
         'id_usuario': usuario.id_usuario,
+        'frase_recuperacion': frase_recuperacion,
         'privateKeyEnc': base64.urlsafe_b64encode(ciphertext).decode(),
         'privateKeyIv': base64.urlsafe_b64encode(iv).decode(),
         'privateKeySalt': base64.urlsafe_b64encode(salt).decode(),
         'privateKeyTag': base64.urlsafe_b64encode(tag).decode(),
     }), 201
+
+
+@bp.route('/usuarios/recuperar_clave', methods=['POST'])
+def recuperar_clave():
+    data = request.json
+    frase_recuperacion = data.get('frase_recuperacion')
+    nueva_contrasena = data.get('nueva_contrasena')
+    if not frase_recuperacion or not nueva_contrasena:
+        return jsonify({'mensaje': 'Faltan datos'}), 400
+    mnemo = Mnemonic('english')
+    if not mnemo.check(frase_recuperacion):
+        return jsonify({'mensaje': 'Frase de recuperación inválida'}), 400
+    seed = mnemo.to_seed(frase_recuperacion)
+    from hashlib import sha256
+    clave_privada = sha256(seed).digest()
+    # Cifrar la clave privada con la nueva contraseña
+    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    import os, base64
+    salt = os.urandom(16)
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=100_000,
+    )
+    key = kdf.derive(nueva_contrasena.encode())
+    iv = os.urandom(12)
+    aesgcm = AESGCM(key)
+    priv_encrypted = aesgcm.encrypt(iv, clave_privada, None)
+    ciphertext = priv_encrypted[:-16]
+    tag = priv_encrypted[-16:]
+    return jsonify({
+        'privateKeyEnc': base64.urlsafe_b64encode(ciphertext).decode(),
+        'privateKeyIv': base64.urlsafe_b64encode(iv).decode(),
+        'privateKeySalt': base64.urlsafe_b64encode(salt).decode(),
+        'privateKeyTag': base64.urlsafe_b64encode(tag).decode(),
+        'mensaje': 'Clave privada recuperada y cifrada con la nueva contraseña.'
+    }), 200
 
 
 # --- TARJETAS ---

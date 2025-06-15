@@ -12,6 +12,8 @@ export default function RegisterPage() {
   const [clavePrivadaCifrada, setClavePrivadaCifrada] = useState<string | null>(null);
   const [showClaveModal, setShowClaveModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [fraseRecuperacion, setFraseRecuperacion] = useState<string | null>(null);
+  const [confirmoFrase, setConfirmoFrase] = useState(false);
   const navigate = useNavigate();
 
   // Validaciones en tiempo real
@@ -28,6 +30,13 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       const res = await register(nombre, correo, telefono, contrasena);
+      if (res.frase_recuperacion) {
+        setFraseRecuperacion(res.frase_recuperacion);
+        setShowClaveModal(false);
+        setSuccess('Usuario creado correctamente. Guarda tu frase de recuperación.');
+        setConfirmoFrase(false);
+        return;
+      }
       // Adaptar para backend que devuelve privateKeyEnc, privateKeyIv, privateKeySalt, privateKeyTag
       if (res.privateKeyEnc && res.privateKeyIv && res.privateKeySalt && res.privateKeyTag) {
         // Decodificar cada parte
@@ -187,6 +196,64 @@ export default function RegisterPage() {
             Esta clave es única y solo se muestra una vez.<br/>
             Guárdala en un lugar seguro. La necesitarás junto con tu contraseña para firmar pagos y acceder a funciones avanzadas.
           </div>
+        </div>
+      )}
+      {fraseRecuperacion && (
+        <div style={{
+          marginTop: 48,
+          marginBottom: 48,
+          background: 'linear-gradient(120deg, #fffbe6 0%, #e3f0ff 100%)',
+          borderRadius: 18,
+          padding: '36px 28px 32px 28px',
+          textAlign: 'center',
+          border: '2.5px solid #2563eb',
+          boxShadow: '0 6px 32px #2563eb33',
+          position: 'relative',
+          fontSize: 18,
+          maxWidth: 520,
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 18, justifyContent: 'center' }}>
+            <span style={{ fontSize: 36, color: '#fbc02d', marginRight: 14 }}>📝</span>
+            <span style={{ fontWeight: 700, color: '#1a237e', fontSize: 22, letterSpacing: 0.5 }}>
+              ¡Guarda tu frase de recuperación!
+            </span>
+          </div>
+          <div style={{ margin: '18px 0 0 0', display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'center' }}>
+            <input
+              type="text"
+              value={fraseRecuperacion}
+              readOnly
+              style={{ width: '100%', fontFamily: 'monospace', fontSize: 16, background: '#fffde7', border: '1.5px solid #2563eb', borderRadius: 8, padding: 12, color: '#1a237e', fontWeight: 600, letterSpacing: 0.5 }}
+            />
+            <button
+              style={{ marginLeft: 12, fontSize: 15, padding: '10px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px #2563eb22' }}
+              onClick={() => { if(fraseRecuperacion) navigator.clipboard.writeText(fraseRecuperacion); }}
+              type="button"
+            >
+              Copiar
+            </button>
+          </div>
+          <div style={{ color:'#b71c1c', fontSize:16, marginTop: 18, fontWeight: 500, textAlign: 'center', lineHeight: 1.5 }}>
+            Esta frase es única y solo se muestra una vez.<br/>
+            Guárdala en un lugar seguro. Es la única forma de recuperar tu clave privada si olvidas tu contraseña.
+          </div>
+          <label style={{ marginTop: 24, fontSize: 15, color: '#2563eb', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input type="checkbox" checked={confirmoFrase} onChange={e => setConfirmoFrase(e.target.checked)} style={{ width: 18, height: 18 }} />
+            He guardado mi frase de recuperación en un lugar seguro.
+          </label>
+          <button
+            className="btn-primary"
+            style={{ marginTop: 18, fontWeight: 600, fontSize: 16, padding: '10px 32px' }}
+            disabled={!confirmoFrase}
+            onClick={() => { setFraseRecuperacion(null); setShowClaveModal(true); }}
+          >
+            Continuar
+          </button>
         </div>
       )}
       <p style={{ textAlign: 'center', marginTop: 36, marginBottom: 0 }}>
