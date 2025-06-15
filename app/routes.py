@@ -619,6 +619,24 @@ def chatbot():
         'ayuda': lambda usuario: (
             'Puedo ayudarte a: consultar saldo, ver tus últimas transacciones, ver tus tarjetas registradas, ver tus solicitudes de pago o pedir ayuda.'
         ),
+        'info_general': lambda usuario: (
+            'SafePay es una plataforma de pagos y transferencias seguras basada en tecnología blockchain. Permite enviar, recibir y gestionar dinero de forma transparente, rápida y confiable.'
+        ),
+        'que_es_safepay': lambda usuario: (
+            'SafePay es una solución fintech que utiliza blockchain para garantizar la seguridad y transparencia en todas tus operaciones financieras.'
+        ),
+        'funciones': lambda usuario: (
+            'SafePay te permite: consultar tu saldo, ver tu historial de transacciones, registrar tarjetas, realizar transferencias, solicitar pagos y gestionar tus dispositivos de acceso.'
+        ),
+        'registro': lambda usuario: (
+            'Para registrarte en SafePay, haz clic en el botón de registro y completa tus datos. Es rápido, seguro y gratuito.'
+        ),
+        'es_seguro': lambda usuario: (
+            'Sí, SafePay es seguro. Utiliza tecnología blockchain y cifrado avanzado para proteger todas tus transacciones y datos personales.'
+        ),
+        'quien_puede_usar': lambda usuario: (
+            'Cualquier persona mayor de edad puede registrarse y usar SafePay para enviar, recibir y gestionar pagos de forma segura.'
+        ),
     }
     INTENCIONES_TRANSACCIONALES = [
         'consultar_saldo', 'consultar_historial', 'consultar_tarjetas',
@@ -630,8 +648,10 @@ def chatbot():
     if intencion == 'no_encontrado':
         # Si NLP no reconoce, pasar a Qwen
         intencion_llm = classify_intent_llm(mensaje)
+        # Si la intención es transaccional y no hay usuario, pide iniciar sesión
         if intencion_llm.lower().replace(' ', '_') in INTENCIONES_TRANSACCIONALES and not usuario:
             return jsonify({'respuesta': 'Debes iniciar sesión para consultar tu saldo, hacer transferencias o acceder a funciones personalizadas.'})
+        # Si hay usuario o la intención es informativa, responde normalmente
         if intencion_llm in RESPUESTAS_DINAMICAS:
             respuesta = RESPUESTAS_DINAMICAS[intencion_llm](usuario)
             return jsonify({'respuesta': respuesta})
@@ -641,10 +661,9 @@ def chatbot():
             return jsonify({'respuesta': '¡Hasta luego! Si tienes más preguntas, aquí estaré.'})
         if intencion_llm.lower() == 'ayuda':
             return jsonify({'respuesta': RESPUESTAS_DINAMICAS['ayuda'](usuario)})
-        if intencion_llm.lower() == 'información_general':
-            return jsonify({'respuesta': RESPUESTAS_DINAMICAS['info_general'](usuario)})
-        if intencion_llm.lower() == 'registro_de_usuario':
-            return jsonify({'respuesta': RESPUESTAS_DINAMICAS['registro'](usuario)})
+        if intencion_llm.lower() in ['información_general', 'info_general', 'que_es_safepay', 'funciones', 'registro', 'es_seguro', 'quien_puede_usar']:
+            respuesta = RESPUESTAS_DINAMICAS.get(intencion_llm.lower().replace(' ', '_'), lambda u: 'SafePay es una plataforma de pagos y transferencias seguras basada en blockchain.').__call__(usuario)
+            return jsonify({'respuesta': respuesta})
         # Si no se reconoce la intención, pedir a Qwen que genere una respuesta profesional
         respuesta_ia = classify_intent_llm(mensaje, modo='respuesta')
         return jsonify({'respuesta': respuesta_ia})
@@ -741,3 +760,27 @@ def crear_solicitud_pago():
     db.session.add(solicitud)
     db.session.commit()
     return jsonify({'mensaje': 'Solicitud de pago creada correctamente.', 'id_solicitud': solicitud.id_solicitud}), 200
+
+@bp.route('/usuarios/nombres', methods=['POST'])
+def obtener_nombres_usuarios():
+    data = request.get_json()
+    ids = data.get('ids', [])
+    if not ids or not isinstance(ids, list):
+        return jsonify({})
+    usuarios = Usuario.query.filter(Usuario.id_usuario.in_(ids)).all()
+    return jsonify({str(u.id_usuario): u.nombre for u in usuarios})
+
+@bp.route('/cuentas/nombres', methods=['POST'])
+def obtener_nombres_por_cuentas():
+    data = request.get_json()
+    cuenta_ids = data.get('cuenta_ids', [])
+    if not cuenta_ids or not isinstance(cuenta_ids, list):
+        return jsonify({})
+    cuentas = Cuenta.query.filter(Cuenta.id_cuenta.in_(cuenta_ids)).all()
+    # Mapear id_cuenta a nombre de usuario
+    result = {}
+    for c in cuentas:
+        usuario = Usuario.query.get(c.id_usuario)
+        if usuario:
+            result[str(c.id_cuenta)] = usuario.nombre
+    return jsonify(result)

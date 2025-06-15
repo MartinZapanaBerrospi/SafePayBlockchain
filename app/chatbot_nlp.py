@@ -47,32 +47,57 @@ def obtener_usuario_desde_token(token):
     except Exception:
         return None
 
-# @bp.route('/chatbot', methods=['POST'])
-# def chatbot():
-#     data = request.json
-#     mensaje = data.get('mensaje', '')
-#     token = request.headers.get('Authorization', '').replace('Bearer ', '')
-#     # 1. Intentar primero con la lógica local
-#     intencion = classify_intent(mensaje)
-#     usuario = obtener_usuario_desde_token(token) if token else None
-#     if intencion in RESPUESTAS_DINAMICAS:
-#         respuesta = RESPUESTAS_DINAMICAS[intencion](usuario)
-#         return jsonify({'respuesta': respuesta})
-#     # 2. Si la intención es "ayuda" (o no reconocida), usar Qwen para mayor cobertura
-#     intencion_llm = classify_intent_llm(mensaje)
-#     if intencion_llm in RESPUESTAS_DINAMICAS:
-#         respuesta = RESPUESTAS_DINAMICAS[intencion_llm](usuario)
-#         return jsonify({'respuesta': respuesta})
-#     if intencion_llm.lower() == 'saludo':
-#         return jsonify({'respuesta': '¡Hola! ¿En qué puedo ayudarte hoy?'})
-#     if intencion_llm.lower() == 'despedida':
-#         return jsonify({'respuesta': '¡Hasta luego! Si tienes más preguntas, aquí estaré.'})
-#     if intencion_llm.lower() == 'ayuda':
-#         return jsonify({'respuesta': RESPUESTAS_DINAMICAS['ayuda'](usuario)})
-#     if intencion_llm.lower() == 'información general':
-#         return jsonify({'respuesta': RESPUESTAS_DINAMICAS['info_general'](usuario)})
-#     if intencion_llm.lower() == 'registro de usuario':
-#         return jsonify({'respuesta': RESPUESTAS_DINAMICAS['registro'](usuario)})
-#     # Si no se reconoce la intención, pedir a Qwen que genere una respuesta profesional
-#     respuesta_ia = classify_intent_llm(mensaje, modo='respuesta')
-#     return jsonify({'respuesta': respuesta_ia})
+@bp.route('/chatbot', methods=['POST'])
+def chatbot():
+    data = request.json
+    mensaje = data.get('mensaje', '')
+    token = request.headers.get('Authorization', '').replace('Bearer ', '')
+    # 1. Intentar primero con la lógica local
+    intencion = classify_intent(mensaje)
+    usuario = obtener_usuario_desde_token(token) if token else None
+    if intencion in RESPUESTAS_DINAMICAS:
+        if usuario:
+            respuesta = RESPUESTAS_DINAMICAS[intencion](usuario)
+        else:
+            # Respuesta genérica para usuarios no autenticados
+            if intencion == 'consultar_saldo':
+                respuesta = 'Para consultar tu saldo, por favor inicia sesión.'
+            elif intencion == 'consultar_historial':
+                respuesta = 'Debes iniciar sesión para ver tu historial de transacciones.'
+            elif intencion == 'consultar_tarjetas':
+                respuesta = 'Inicia sesión para ver tus tarjetas registradas.'
+            elif intencion == 'consultar_solicitudes':
+                respuesta = 'Inicia sesión para ver tus solicitudes de pago.'
+            else:
+                respuesta = RESPUESTAS_DINAMICAS[intencion](usuario)
+        return jsonify({'respuesta': respuesta})
+    # 2. Si la intención es "ayuda" (o no reconocida), usar LLM para mayor cobertura
+    intencion_llm = classify_intent_llm(mensaje)
+    if intencion_llm in RESPUESTAS_DINAMICAS:
+        if usuario:
+            respuesta = RESPUESTAS_DINAMICAS[intencion_llm](usuario)
+        else:
+            if intencion_llm == 'consultar_saldo':
+                respuesta = 'Para consultar tu saldo, por favor inicia sesión.'
+            elif intencion_llm == 'consultar_historial':
+                respuesta = 'Debes iniciar sesión para ver tu historial de transacciones.'
+            elif intencion_llm == 'consultar_tarjetas':
+                respuesta = 'Inicia sesión para ver tus tarjetas registradas.'
+            elif intencion_llm == 'consultar_solicitudes':
+                respuesta = 'Inicia sesión para ver tus solicitudes de pago.'
+            else:
+                respuesta = RESPUESTAS_DINAMICAS[intencion_llm](usuario)
+        return jsonify({'respuesta': respuesta})
+    if intencion_llm.lower() == 'saludo':
+        return jsonify({'respuesta': '¡Hola! ¿En qué puedo ayudarte hoy?'} )
+    if intencion_llm.lower() == 'despedida':
+        return jsonify({'respuesta': '¡Hasta luego! Si tienes más preguntas, aquí estaré.'})
+    if intencion_llm.lower() == 'ayuda':
+        return jsonify({'respuesta': RESPUESTAS_DINAMICAS['ayuda'](usuario)})
+    if intencion_llm.lower() == 'información general':
+        return jsonify({'respuesta': 'SafePay es una plataforma de pagos seguros y transferencias con tecnología blockchain. Puedes registrarte, consultar tu saldo, ver tu historial y más.'})
+    if intencion_llm.lower() == 'registro de usuario':
+        return jsonify({'respuesta': 'Para registrarte, haz clic en el botón de registro y sigue los pasos. ¡Es rápido y seguro!'})
+    # Si no se reconoce la intención, pedir a LLM que genere una respuesta profesional
+    respuesta_ia = classify_intent_llm(mensaje, modo='respuesta')
+    return jsonify({'respuesta': respuesta_ia})

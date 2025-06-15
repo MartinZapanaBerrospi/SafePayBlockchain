@@ -124,29 +124,30 @@ export default function RegisterPage() {
       )}
       {showClaveModal && clavePrivadaCifrada && (
         <div style={{
-          marginTop: 36,
+          marginTop: 48,
+          marginBottom: 48,
           background: 'linear-gradient(120deg, #fffbe6 0%, #e3f0ff 100%)',
-          borderRadius: 16,
-          padding: 32,
-          textAlign: 'left',
+          borderRadius: 18,
+          padding: '36px 28px 32px 28px',
+          textAlign: 'center',
           border: '2.5px solid #2563eb',
-          boxShadow: '0 4px 24px #2563eb33',
+          boxShadow: '0 6px 32px #2563eb33',
           position: 'relative',
-          fontSize: 17,
-          maxWidth: 500,
+          fontSize: 18,
+          maxWidth: 520,
           marginLeft: 'auto',
           marginRight: 'auto',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 18 }}>
-            <span style={{ fontSize: 34, color: '#fbc02d', marginRight: 14 }}>🔒</span>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 18, justifyContent: 'center' }}>
+            <span style={{ fontSize: 36, color: '#fbc02d', marginRight: 14 }}>🔒</span>
             <span style={{ fontWeight: 700, color: '#1a237e', fontSize: 22, letterSpacing: 0.5 }}>
               ¡Guarda tu clave privada cifrada!
             </span>
           </div>
-          <div style={{ margin: '18px 0', display: 'flex', alignItems: 'center', width: '100%' }}>
+          <div style={{ margin: '18px 0 0 0', display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'center' }}>
             <input
               type="text"
               value={clavePrivadaCifrada}
@@ -182,14 +183,14 @@ export default function RegisterPage() {
               Descargar
             </button>
           </div>
-          <div style={{ color:'#b71c1c', fontSize:16, marginTop: 14, fontWeight: 500, textAlign: 'center', lineHeight: 1.5 }}>
+          <div style={{ color:'#b71c1c', fontSize:16, marginTop: 18, fontWeight: 500, textAlign: 'center', lineHeight: 1.5 }}>
             Esta clave es única y solo se muestra una vez.<br/>
             Guárdala en un lugar seguro. La necesitarás junto con tu contraseña para firmar pagos y acceder a funciones avanzadas.
           </div>
         </div>
       )}
-      <p style={{ textAlign: 'center', marginTop: 24 }}>
-        <button className="link" onClick={() => navigate('/login')} style={{ color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontWeight: 600 }}>
+      <p style={{ textAlign: 'center', marginTop: 36, marginBottom: 0 }}>
+        <button className="link" onClick={() => navigate('/login')} style={{ color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontWeight: 600, fontSize: 16, padding: '10px 24px', borderRadius: 8, margin: '0 auto', display: 'inline-block' }}>
           ¿Ya tienes cuenta? Iniciar sesión
         </button>
       </p>

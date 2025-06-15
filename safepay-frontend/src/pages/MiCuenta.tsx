@@ -15,6 +15,7 @@ export default function MiCuenta() {
   const [showModal, setShowModal] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [tarjetaAEliminar, setTarjetaAEliminar] = useState<number | null>(null);
+  const [nombresCuentas, setNombresCuentas] = useState<{ [id: number]: string }>({});
 
   const userData = localStorage.getItem('userData');
   const id_usuario = userData ? JSON.parse(userData).id_usuario : null;
@@ -45,6 +46,17 @@ export default function MiCuenta() {
       if (cta) {
         const txs = await getTransacciones(cta.id_cuenta);
         setTransacciones(txs);
+        // Obtener los ids de cuentas involucradas (origen y destino)
+        const cuentaIds = Array.from(new Set(txs.flatMap((t: any) => [t.cuenta_origen, t.cuenta_destino])));
+        if (cuentaIds.length > 0) {
+          fetch('/api/cuentas/nombres', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cuenta_ids: cuentaIds })
+          })
+            .then(res => res.json())
+            .then(setNombresCuentas);
+        }
       }
     } catch {
       setError('Error al cargar cuenta o transacciones');
@@ -214,33 +226,52 @@ export default function MiCuenta() {
       {/* Historial de transacciones */}
       <div style={{ marginTop: 48 }}>
         <h3 style={{ marginBottom: 12 }}>Historial de transacciones</h3>
-        <div style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid var(--color-border)', borderRadius: 8 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div style={{ maxHeight: 340, overflowY: 'auto', border: '1.5px solid var(--color-border)', borderRadius: 14, boxShadow: '0 2px 16px #2563eb18', background: 'var(--color-card)', padding: 0 }}>
+          <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: 16, minWidth: 480 }}>
             <thead>
-              <tr style={{ background: 'var(--color-bg)' }}>
-                <th style={{ padding: 8, textAlign: 'left' }}>Fecha</th>
-                <th style={{ padding: 8, textAlign: 'left' }}>Tipo</th>
-                <th style={{ padding: 8, textAlign: 'left' }}>Monto</th>
-                <th style={{ padding: 8, textAlign: 'left' }}>Descripción</th>
+              <tr style={{ background: 'var(--color-bg)', color: 'var(--color-primary)', fontWeight: 700 }}>
+                <th style={{ padding: '14px 12px', textAlign: 'left', borderBottom: '2px solid var(--color-border)' }}>Fecha</th>
+                <th style={{ padding: '14px 12px', textAlign: 'left', borderBottom: '2px solid var(--color-border)' }}>Tipo</th>
+                <th style={{ padding: '14px 12px', textAlign: 'right', borderBottom: '2px solid var(--color-border)' }}>Monto</th>
+                <th style={{ padding: '14px 12px', textAlign: 'left', borderBottom: '2px solid var(--color-border)' }}>Descripción</th>
               </tr>
             </thead>
             <tbody>
               {transacciones.length === 0 && (
-                <tr><td colSpan={4} style={{ textAlign: 'center', padding: 16, color: '#888' }}>No hay transacciones.</td></tr>
+                <tr><td colSpan={4} style={{ textAlign: 'center', padding: 24, color: '#888' }}>No hay transacciones.</td></tr>
               )}
-              {transacciones.map((tx: any, idx: number) => (
-                <tr key={idx} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  <td style={{ padding: 8 }}>{tx.fecha ? new Date(tx.fecha).toLocaleString() : '-'}</td>
-                  <td style={{ padding: 8 }}>
-                    {tx.cuenta_origen === (cuenta?.id_cuenta) && tx.cuenta_destino === (cuenta?.id_cuenta) ? 'Retiro' : tx.cuenta_origen === (cuenta?.id_cuenta) ? 'Enviado' : 'Recibido'}
-                  </td>
-                  <td style={{ padding: 8 }}>
-                    {tx.cuenta_origen === (cuenta?.id_cuenta) ? '-' : '+'}
-                    S/ {parseFloat(tx.monto).toFixed(2)}
-                  </td>
-                  <td style={{ padding: 8 }}>{tx.descripcion}</td>
-                </tr>
-              ))}
+              {transacciones.map((tx: any, idx: number) => {
+                const isRetiro = tx.cuenta_origen === tx.cuenta_destino && tx.cuenta_origen === cuenta?.id_cuenta;
+                const isEnviado = tx.cuenta_origen === cuenta?.id_cuenta && !isRetiro;
+                const isRecibido = tx.cuenta_destino === cuenta?.id_cuenta && !isRetiro;
+                // Fecha solo día/mes/año
+                const fecha = tx.fecha ? new Date(tx.fecha).toLocaleDateString() : '-';
+                // Monto visual
+                const monto = parseFloat(tx.monto).toFixed(2);
+                // Descripción mejorada
+                let descripcion = tx.descripcion;
+                if (isEnviado && tx.cuenta_destino !== cuenta?.id_cuenta) {
+                  const nombreDest = nombresCuentas[tx.cuenta_destino] || `usuario ${tx.cuenta_destino}`;
+                  descripcion = `Transferencia a ${nombreDest}`;
+                } else if (isRecibido && tx.cuenta_origen !== cuenta?.id_cuenta) {
+                  const nombreOrigen = nombresCuentas[tx.cuenta_origen] || `usuario ${tx.cuenta_origen}`;
+                  descripcion = `Transferencia de ${nombreOrigen}`;
+                } else if (isRetiro) {
+                  descripcion = 'Retiro';
+                }
+                return (
+                  <tr key={idx} style={{ borderBottom: '1px solid var(--color-border)', background: idx % 2 === 0 ? 'var(--color-bg)' : 'var(--color-card)' }}>
+                    <td style={{ padding: '12px 10px', fontWeight: 500 }}>{fecha}</td>
+                    <td style={{ padding: '12px 10px', fontWeight: 500 }}>
+                      {isRetiro ? <span style={{ color: 'var(--color-error)', fontWeight: 700 }}>Retiro</span> : isEnviado ? <span style={{ color: 'var(--color-primary)', fontWeight: 700 }}>Enviado</span> : <span style={{ color: 'var(--color-success)', fontWeight: 700 }}>Recibido</span>}
+                    </td>
+                    <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 700, color: isEnviado || isRetiro ? 'var(--color-error)' : 'var(--color-success)', fontSize: 17 }}>
+                      {isEnviado || isRetiro ? '-' : '+'}S/ {monto}
+                    </td>
+                    <td style={{ padding: '12px 10px', fontWeight: 500 }}>{descripcion}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

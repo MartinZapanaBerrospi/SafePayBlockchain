@@ -20,7 +20,9 @@ INTENT_LABELS = [
     "info_general",
     "registro",
     "funciones",
-    "que_es_safepay"
+    "que_es_safepay",
+    "es_seguro",
+    "quien_puede_usar"
 ]
 
 EXAMPLES = {
@@ -33,7 +35,13 @@ EXAMPLES = {
     "info_general": ["qué es safepay", "información general", "presentación", "sobre safepay"],
     "registro": ["cómo me registro", "registrarme", "crear cuenta", "abrir cuenta"],
     "funciones": ["qué funciones tiene", "qué puedo hacer", "servicios disponibles", "funcionalidades"],
-    "que_es_safepay": ["qué es safepay", "para qué sirve safepay", "explica safepay"]
+    "que_es_safepay": ["qué es safepay", "para qué sirve safepay", "explica safepay"],
+    "es_seguro": [
+        "es seguro", "safe?", "seguro safepay", "es confiable", "es confiable safepay", "es seguro usar safepay", "safe safepay", "es seguro la plataforma", "es seguro usar la plataforma"
+    ],
+    "quien_puede_usar": [
+        "quién puede usar", "quien puede usar", "quiénes pueden usar", "quien puede registrarse", "quién puede registrarse", "quién puede acceder", "quién puede tener safepay", "quién puede crear cuenta", "quién puede abrir cuenta", "quién puede utilizar safepay", "quién puede utilizar la plataforma"
+    ]
 }
 
 def classify_intent(text):
