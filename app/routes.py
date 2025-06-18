@@ -10,6 +10,10 @@ import base64
 from blockchain import Blockchain
 from .chatbot_intent_llm import classify_intent_llm
 from mnemonic import Mnemonic
+from flask_mail import Message
+from app import mail
+import secrets
+from functools import wraps
 
 blockchain = Blockchain()
 
@@ -433,24 +437,25 @@ def registrar_usuario():
     correo = data.get('correo')
     telefono = data.get('telefono')
     contrasena = data.get('contrasena')
-    if not nombre or not correo or not contrasena:
+    pregunta_secreta = data.get('pregunta_secreta')
+    respuesta_secreta = data.get('respuesta_secreta')
+    if not nombre or not correo or not contrasena or not pregunta_secreta or not respuesta_secreta:
         return jsonify({'mensaje': 'Faltan datos obligatorios'}), 400
-    if Usuario.query.filter_by(nombre=nombre).first() or Usuario.query.filter_by(correo=correo).first():
+    if Usuario.query.filter(db.func.lower(Usuario.nombre) == nombre.lower()).first() or Usuario.query.filter(db.func.lower(Usuario.correo) == correo.lower()).first():
         return jsonify({'mensaje': 'El usuario o correo ya existe'}), 400
-    # Generar frase de recuperación (mnemonic)
-    mnemo = Mnemonic('english')
-    frase_recuperacion = mnemo.generate(strength=128)  # 12 palabras
-    # Derivar clave privada desde la frase
-    seed = mnemo.to_seed(frase_recuperacion)
+    # Generar clave privada aleatoria (o derivada de otro método seguro)
     from hashlib import sha256
-    clave_privada = sha256(seed).digest()
+    import os
+    clave_privada = sha256(os.urandom(32)).digest()
     usuario = Usuario(
         nombre=nombre,
         correo=correo,
         telefono=telefono,
-        clave_privada=clave_privada
+        clave_privada=clave_privada,
+        pregunta_secreta=pregunta_secreta
     )
     usuario.set_contrasena(contrasena)
+    usuario.set_respuesta_secreta(respuesta_secreta)
     db.session.add(usuario)
     db.session.commit()
     db.session.refresh(usuario)
@@ -462,7 +467,7 @@ def registrar_usuario():
     # Cifrar la clave privada con la contraseña del usuario
     from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-    import os, base64
+    import base64
     salt = os.urandom(16)
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
@@ -479,7 +484,6 @@ def registrar_usuario():
     return jsonify({
         'mensaje': 'Usuario creado correctamente',
         'id_usuario': usuario.id_usuario,
-        'frase_recuperacion': frase_recuperacion,
         'privateKeyEnc': base64.urlsafe_b64encode(ciphertext).decode(),
         'privateKeyIv': base64.urlsafe_b64encode(iv).decode(),
         'privateKeySalt': base64.urlsafe_b64encode(salt).decode(),
@@ -487,43 +491,24 @@ def registrar_usuario():
     }), 201
 
 
-@bp.route('/usuarios/recuperar_clave', methods=['POST'])
-def recuperar_clave():
-    data = request.json
-    frase_recuperacion = data.get('frase_recuperacion')
-    nueva_contrasena = data.get('nueva_contrasena')
-    if not frase_recuperacion or not nueva_contrasena:
-        return jsonify({'mensaje': 'Faltan datos'}), 400
-    mnemo = Mnemonic('english')
-    if not mnemo.check(frase_recuperacion):
-        return jsonify({'mensaje': 'Frase de recuperación inválida'}), 400
-    seed = mnemo.to_seed(frase_recuperacion)
-    from hashlib import sha256
-    clave_privada = sha256(seed).digest()
-    # Cifrar la clave privada con la nueva contraseña
-    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-    import os, base64
-    salt = os.urandom(16)
-    kdf = PBKDF2HMAC(
-        algorithm=hashes.SHA256(),
-        length=32,
-        salt=salt,
-        iterations=100_000,
-    )
-    key = kdf.derive(nueva_contrasena.encode())
-    iv = os.urandom(12)
-    aesgcm = AESGCM(key)
-    priv_encrypted = aesgcm.encrypt(iv, clave_privada, None)
-    ciphertext = priv_encrypted[:-16]
-    tag = priv_encrypted[-16:]
-    return jsonify({
-        'privateKeyEnc': base64.urlsafe_b64encode(ciphertext).decode(),
-        'privateKeyIv': base64.urlsafe_b64encode(iv).decode(),
-        'privateKeySalt': base64.urlsafe_b64encode(salt).decode(),
-        'privateKeyTag': base64.urlsafe_b64encode(tag).decode(),
-        'mensaje': 'Clave privada recuperada y cifrada con la nueva contraseña.'
-    }), 200
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        if 'Authorization' in request.headers:
+            token = request.headers['Authorization'].replace('Bearer ', '')
+        if not token:
+            return jsonify({'mensaje': 'Token requerido'}), 401
+        try:
+            secret = str(current_app.config.get('SECRET_KEY', 'clave-secreta'))
+            data = pyjwt.decode(token, secret, algorithms=['HS256'])
+            current_user = Usuario.query.get(data['id_usuario'])
+            if not current_user:
+                return jsonify({'mensaje': 'Usuario no encontrado'}), 401
+        except Exception as e:
+            return jsonify({'mensaje': 'Token inválido'}), 401
+        return f(current_user, *args, **kwargs)
+    return decorated
 
 
 # --- TARJETAS ---
@@ -613,7 +598,6 @@ def chatbot():
     if token:
         try:
             secret = str(current_app.config.get('SECRET_KEY', 'clave-secreta'))
-            import jwt as pyjwt
             data_token = pyjwt.decode(token, secret, algorithms=['HS256'])
             print(f"[DEBUG] Decodificación JWT: {data_token}")
             id_usuario = data_token.get('id_usuario')
@@ -828,3 +812,107 @@ def obtener_nombres_por_cuentas():
         if usuario:
             result[str(c.id_cuenta)] = usuario.nombre
     return jsonify(result)
+
+
+# --- VALIDACIÓN EN TIEMPO REAL DE USUARIO Y CORREO ---
+@bp.route('/usuarios/existe-usuario')
+def existe_usuario():
+    nombre = request.args.get('nombre')
+    if not nombre:
+        return jsonify({'existe': False})
+    existe = Usuario.query.filter(db.func.lower(Usuario.nombre) == nombre.lower()).first() is not None
+    return jsonify({'existe': existe})
+
+@bp.route('/usuarios/existe-correo')
+def existe_correo():
+    correo = request.args.get('correo')
+    if not correo:
+        return jsonify({'existe': False})
+    existe = Usuario.query.filter(db.func.lower(Usuario.correo) == correo.lower()).first() is not None
+    return jsonify({'existe': existe})
+
+# --- RECUPERACIÓN DE CONTRASEÑA ---
+@bp.route('/usuarios/solicitar-reset', methods=['POST'])
+def solicitar_reset():
+    data = request.json
+    correo = data.get('correo')
+    if not correo:
+        return jsonify({'mensaje': 'Correo requerido'}), 400
+    usuario = Usuario.query.filter(db.func.lower(Usuario.correo) == correo.lower()).first()
+    if not usuario:
+        return jsonify({'mensaje': 'Si el correo está registrado, recibirás un email con instrucciones.'}), 200
+    # Generar token seguro
+    token = secrets.token_urlsafe(32)
+    usuario.reset_token = token
+    db.session.commit()
+    # Enviar email
+    msg = Message('Recupera tu contraseña SafePay', recipients=[correo])
+    msg.body = f"Hola,\n\nPara restablecer tu contraseña haz clic en el siguiente enlace:\n\nhttps://tusitio.com/reset-password?token={token}\n\nSi no solicitaste esto, ignora este mensaje."
+    mail.send(msg)
+    return jsonify({'mensaje': 'Si el correo está registrado, recibirás un email con instrucciones.'}), 200
+
+@bp.route('/usuarios/reset-password', methods=['POST'])
+def reset_password():
+    data = request.json
+    token = data.get('token')
+    nueva_contrasena = data.get('nueva_contrasena')
+    if not token or not nueva_contrasena:
+        return jsonify({'mensaje': 'Datos incompletos'}), 400
+    usuario = Usuario.query.filter_by(reset_token=token).first()
+    if not usuario:
+        return jsonify({'mensaje': 'Token inválido o expirado'}), 400
+    usuario.set_contrasena(nueva_contrasena)
+    usuario.reset_token = None
+    db.session.commit()
+    return jsonify({'mensaje': 'Contraseña restablecida correctamente'}), 200
+
+# --- NUEVO: OBTENER PREGUNTA SECRETA ---
+@bp.route('/usuarios/pregunta-secreta', methods=['GET'])
+def obtener_pregunta_secreta():
+    token = request.headers.get('Authorization', '').replace('Bearer ', '')
+    if not token:
+        return jsonify({'mensaje': 'Token requerido'}), 401
+    try:
+        secret = str(current_app.config.get('SECRET_KEY', 'clave-secreta'))
+        data_token = pyjwt.decode(token, secret, algorithms=['HS256'])
+        id_usuario = data_token.get('id_usuario')
+        usuario = Usuario.query.filter_by(id_usuario=id_usuario).first()
+        if not usuario:
+            return jsonify({'mensaje': 'Usuario no encontrado'}), 401
+        return jsonify({'pregunta_secreta': usuario.pregunta_secreta}), 200
+    except Exception as e:
+        return jsonify({'mensaje': 'Token inválido'}), 401
+
+@bp.route('/usuarios/generar-clave-privada', methods=['POST'])
+@token_required
+def generar_clave_privada(current_user):
+    data = request.json
+    respuesta_secreta = data.get('respuesta_secreta')
+    if not respuesta_secreta:
+        return jsonify({'mensaje': 'Falta la respuesta secreta'}), 400
+    if not current_user.check_respuesta_secreta(respuesta_secreta):
+        return jsonify({'mensaje': 'Respuesta secreta incorrecta'}), 401
+    # Generar nueva clave privada
+    from hashlib import sha256
+    import os
+    nueva_clave_privada = sha256(os.urandom(32)).digest()
+    current_user.clave_privada = nueva_clave_privada
+    db.session.commit()
+    # Cifrar la nueva clave privada con una clave interna segura (no con la contraseña)
+    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    import base64
+    salt = os.urandom(16)
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=100_000,
+    )
+    clave_interna = current_app.config.get('CLAVE_INTERNA_CIFRADO', b'default-internal-key-32bytes!!')
+    key = kdf.derive(clave_interna)
+    aesgcm = AESGCM(key)
+    nonce = os.urandom(12)
+    clave_cifrada = aesgcm.encrypt(nonce, nueva_clave_privada, None)
+    clave_cifrada_b64 = base64.b64encode(salt + nonce + clave_cifrada).decode()
+    return jsonify({'clave_privada_cifrada': clave_cifrada_b64}), 200

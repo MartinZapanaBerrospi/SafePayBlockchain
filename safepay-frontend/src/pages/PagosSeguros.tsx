@@ -49,7 +49,7 @@ export default function PagosSeguros() {
       .then(data => {
         const activas = data.filter((s: Solicitud) => s.destinatario === id_usuario && s.estado === 'pendiente');
         setSolicitudes(activas);
-        const ids = Array.from(new Set(activas.map(s => s.solicitante)));
+        const ids = Array.from(new Set(activas.map((s: Solicitud) => s.solicitante)));
         if (ids.length > 0) {
           fetch('/api/usuarios/nombres', {
             method: 'POST',

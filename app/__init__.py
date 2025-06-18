@@ -2,16 +2,45 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
+from flask_mail import Mail
 from .config import Config
 
 
 db = SQLAlchemy()
 migrate = Migrate()
+mail = Mail()
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     app.debug = True  # Activa el modo debug
+    # Configuración Flask-Mail para distintos proveedores
+    # --- Gmail ---
+    # app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+    # app.config['MAIL_PORT'] = 587
+    # app.config['MAIL_USE_TLS'] = True
+    # app.config['MAIL_USERNAME'] = 'TU_CORREO@gmail.com'
+    # app.config['MAIL_PASSWORD'] = 'TU_CONTRASEÑA_DE_APLICACION'
+    # app.config['MAIL_DEFAULT_SENDER'] = 'TU_CORREO@gmail.com'
+
+    # --- Hotmail/Outlook ---
+    # app.config['MAIL_SERVER'] = 'smtp.office365.com'
+    # app.config['MAIL_PORT'] = 587
+    # app.config['MAIL_USE_TLS'] = True
+    # app.config['MAIL_USERNAME'] = 'TU_CORREO@hotmail.com'
+    # app.config['MAIL_PASSWORD'] = 'TU_CONTRASEÑA'
+    # app.config['MAIL_DEFAULT_SENDER'] = 'TU_CORREO@hotmail.com'
+
+    # --- Institucional UNI (@uni.pe) o empresa (@servicios.pe) ---
+    # app.config['MAIL_SERVER'] = 'smtp.uni.pe'  # Cambia por el servidor SMTP real
+    # app.config['MAIL_PORT'] = 587  # O el puerto que te indique tu área de TI
+    # app.config['MAIL_USE_TLS'] = True  # O False, según el proveedor
+    # app.config['MAIL_USERNAME'] = 'TU_CORREO@uni.pe'  # O @servicios.pe
+    # app.config['MAIL_PASSWORD'] = 'TU_CONTRASEÑA'
+    # app.config['MAIL_DEFAULT_SENDER'] = 'TU_CORREO@uni.pe'  # O @servicios.pe
+
+    # Elige y descomenta la configuración que usarás
+    mail.init_app(app)
     CORS(app, resources={r"/api/*": {"origins": "*"}})  # Permite CORS global para /api
     db.init_app(app)
     migrate.init_app(app, db)

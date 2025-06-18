@@ -11,9 +11,12 @@ class Usuario(db.Model):
     correo = db.Column(db.Text, unique=True, nullable=False)
     telefono = db.Column(db.Text)
     fecha_creacion = db.Column(db.DateTime, default=db.func.current_timestamp())
-    contrasena_hash = db.Column(db.String(128), nullable=False)
+    contrasena_hash = db.Column(db.String(256), nullable=False)
     clave_privada = db.Column(db.Text, nullable=True)  # Guardada como string PEM o base64
     clave_publica = db.Column(db.Text, nullable=True)  # Guardada como string PEM
+    pregunta_secreta = db.Column(db.Text, nullable=False)  # Pregunta secreta para recuperación
+    respuesta_secreta_hash = db.Column(db.String(256), nullable=False)  # Hash de la respuesta secreta
+    reset_token = db.Column(db.String(128), nullable=True)  # Token para recuperación de contraseña
     cuentas = db.relationship('Cuenta', backref='usuario', lazy=True)
     dispositivos = db.relationship('Dispositivo', backref='usuario', lazy=True)
     solicitudes_enviadas = db.relationship('SolicitudPago', foreign_keys='SolicitudPago.solicitante', backref='usuario_solicitante', lazy=True)
@@ -49,6 +52,12 @@ class Usuario(db.Model):
             self.clave_privada = self.clave_privada.decode('utf-8')
         if isinstance(self.clave_publica, bytes):
             self.clave_publica = self.clave_publica.decode('utf-8')
+
+    def set_respuesta_secreta(self, respuesta):
+        self.respuesta_secreta_hash = generate_password_hash(respuesta)
+
+    def check_respuesta_secreta(self, respuesta):
+        return check_password_hash(self.respuesta_secreta_hash, respuesta)
 
 class Cuenta(db.Model):
     __tablename__ = 'cuenta'

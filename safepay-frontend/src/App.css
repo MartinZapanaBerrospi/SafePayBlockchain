@@ -838,3 +838,147 @@ a:hover, .link:hover {
     gap: 18px;
   }
 }
+
+/* Estilos para banners de error en login y registro */
+.input-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  color: var(--color-error);
+  background: #fff6f6;
+  border: 1.5px solid var(--color-error);
+  border-radius: 6px;
+  padding: 0.45em 1em;
+  font-size: 0.98em;
+  margin-top: -0.5em;
+  margin-bottom: 0.7em;
+  box-shadow: 0 2px 8px #dc262620;
+  font-weight: 500;
+  transition: background 0.2s, border 0.2s;
+}
+.input-error-banner svg {
+  width: 1.2em;
+  height: 1.2em;
+  flex-shrink: 0;
+}
+
+/* Personalización react-phone-input-2 para tema claro y oscuro */
+.react-phone-input-2 {
+  width: 100% !important;
+}
+.react-phone-input-2 .form-control {
+  background: var(--color-card) !important;
+  color: var(--color-text) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 5px !important;
+  font-size: 1em !important;
+  padding: 0.5em 0.8em !important;
+  margin-top: 0.2em !important;
+  margin-bottom: 0.8em !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  box-shadow: none !important;
+  transition: background 0.2s, color 0.2s, border 0.2s;
+}
+[data-theme='dark'] .react-phone-input-2 .form-control {
+  background: #23272f !important;
+  color: #f3f4f6 !important;
+  border: 1px solid #374151 !important;
+}
+.react-phone-input-2 .flag-dropdown {
+  background: var(--color-card) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 5px 0 0 5px !important;
+  transition: background 0.2s, border 0.2s;
+}
+[data-theme='dark'] .react-phone-input-2 .flag-dropdown {
+  background: #23272f !important;
+  border: 1px solid #374151 !important;
+}
+.react-phone-input-2 .country-list {
+  background: var(--color-card) !important;
+  color: var(--color-text) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 24px #2563eb22 !important;
+  max-height: 220px !important;
+  overflow-y: auto !important;
+  font-size: 1em !important;
+  transition: background 0.2s, color 0.2s, border 0.2s;
+}
+[data-theme='dark'] .react-phone-input-2 .country-list {
+  background: #23272f !important;
+  color: #f3f4f6 !important;
+  border: 1px solid #374151 !important;
+  box-shadow: 0 4px 24px #18181b99 !important;
+}
+.react-phone-input-2 .country-list .country {
+  color: var(--color-text) !important;
+  background: none !important;
+  transition: background 0.18s, color 0.18s;
+}
+[data-theme='dark'] .react-phone-input-2 .country-list .country {
+  color: #f3f4f6 !important;
+}
+.react-phone-input-2 .country-list .country:hover, 
+.react-phone-input-2 .country-list .country.highlight {
+  background: var(--color-primary) !important;
+  color: var(--color-button-text) !important;
+}
+[data-theme='dark'] .react-phone-input-2 .country-list .country:hover, 
+[data-theme='dark'] .react-phone-input-2 .country-list .country.highlight {
+  background: #2563eb !important;
+  color: #fff !important;
+}
+[data-theme='dark'] .react-phone-input-2 .search-box {
+  background: #23272f !important;
+  color: #f3f4f6 !important;
+  border: 1px solid #374151 !important;
+  border-radius: 5px !important;
+  margin-bottom: 0.5em !important;
+}
+[data-theme='dark'] .react-phone-input-2 .search-box:focus {
+  border-color: #60a5fa !important;
+}
+
+/* Mejoras para PhoneField y banderas en modo oscuro */
+[data-theme='dark'] .fi {
+  filter: brightness(1.2) drop-shadow(0 0 2px #0008);
+  background-color: transparent !important;
+}
+[data-theme='dark'] .MuiInputBase-root,
+[data-theme='dark'] .MuiInputBase-root input,
+[data-theme='dark'] .MuiInputBase-root .MuiInputAdornment-root {
+  color: var(--color-text) !important;
+  background: var(--color-card) !important;
+}
+[data-theme='dark'] .MuiMenu-paper {
+  background: var(--color-card) !important;
+  color: var(--color-text) !important;
+}
+[data-theme='dark'] .MuiMenuItem-root {
+  color: var(--color-text) !important;
+}
+
+/* Mejorar contraste de banderas en modo claro también */
+.fi {
+  vertical-align: middle;
+  box-shadow: 0 0 0 1px #8882;
+  border-radius: 3px;
+  background-color: transparent !important;
+}
+
+/* Mejorar contraste de texto en los selects y adornos */
+.MuiInputBase-root,
+.MuiInputBase-root input,
+.MuiInputBase-root .MuiInputAdornment-root {
+  color: var(--color-text) !important;
+  background: var(--color-card) !important;
+}
+.MuiMenu-paper {
+  background: var(--color-card) !important;
+  color: var(--color-text) !important;
+}
+.MuiMenuItem-root {
+  color: var(--color-text) !important;
+}

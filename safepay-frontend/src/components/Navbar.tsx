@@ -1,6 +1,7 @@
 import React from 'react';
 import ThemeSwitch from './ThemeSwitch';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTheme } from '../theme/ThemeProvider';
 
 const NAV_LINKS = [
   { label: 'Dashboard', path: '/dashboard', icon: '📊' },
@@ -12,6 +13,7 @@ const NAV_LINKS = [
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { mode } = useTheme();
   const userData = localStorage.getItem('userData');
   const nombre = userData ? JSON.parse(userData).nombre : '';
 
@@ -44,10 +46,10 @@ const Navbar: React.FC = () => {
         <span
           className="navbar-logo"
           onClick={() => navigate('/inicio')}
-          style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontWeight: 900, fontSize: '1.25em', letterSpacing: 1.5 }}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 900, fontSize: '1.05em', letterSpacing: 1.2, padding: 0 }}
           title="Ir a inicio"
         >
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
+          <svg width="26" height="26" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
             <defs>
               <linearGradient id="shield-gradient" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
                 <stop offset="0%" stopColor="var(--color-primary)" />
@@ -58,7 +60,6 @@ const Navbar: React.FC = () => {
             <path d="M16 10V19" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
             <circle cx="16" cy="22" r="1.5" fill="#fff"/>
           </svg>
-          <span style={{ color: 'var(--color-primary)', fontWeight: 900, fontSize: '1.15em', textShadow: '0 2px 8px #0002' }}>SafePay</span>
         </span>
         <ul className="navbar-links">
           {NAV_LINKS.map(link => (
@@ -75,11 +76,32 @@ const Navbar: React.FC = () => {
           ))}
         </ul>
       </div>
-      <div className="navbar-right" style={{ display: 'flex', alignItems: 'center', gap: 18, minWidth: 0 }}>
-        {nombre && <span className="navbar-user">👤 {nombre}</span>}
+      <div className="navbar-right" style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+        <button
+          className="navbar-link"
+          onClick={() => navigate('/generar-clave-privada')}
+          style={{
+            color: mode === 'dark' ? 'var(--color-accent)' : 'var(--color-primary)',
+            background: mode === 'dark' ? 'rgba(96,165,250,0.08)' : 'rgba(37,99,235,0.08)',
+            border: `1.5px solid ${mode === 'dark' ? 'var(--color-accent)' : 'var(--color-primary)'}`,
+            borderRadius: 8,
+            fontWeight: 700,
+            fontSize: 15,
+            padding: '7px 12px',
+            boxShadow: mode === 'dark' ? '0 2px 8px #0004' : '0 2px 8px #2563eb22',
+            cursor: 'pointer',
+            textDecoration: 'none',
+            transition: 'background 0.2s, color 0.2s',
+            outline: 'none',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <span style={{ marginRight: 5, fontSize: 17 }}>🔑</span> Generar clave
+        </button>
+        {nombre && <span className="navbar-user" style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 15 }}>👤 {nombre}</span>}
         {nombre && (
-          <button className="navbar-link logout-btn" onClick={handleLogout} title="Cerrar sesión" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 18 }}>🔓</span> <span>Salir</span>
+          <button className="navbar-link logout-btn" onClick={handleLogout} title="Cerrar sesión" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 15 }}>
+            <span style={{ fontSize: 17 }}>🔓</span> <span>Salir</span>
           </button>
         )}
         <ThemeSwitch />

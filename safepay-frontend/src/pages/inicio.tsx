@@ -91,6 +91,19 @@ export default function Inicio() {
             <span role="img" aria-label="cuenta">🏦</span> Mi cuenta
           </button>
         </div>
+        <div style={{ marginTop: 28, textAlign: 'center' }}>
+          <span style={{ color: 'var(--color-text)', fontSize: '1em' }}>
+            ¿Necesitas generar una nueva clave privada?
+          </span>
+          <br />
+          <button
+            className="link"
+            style={{ color: '#2563eb', textDecoration: 'underline', fontWeight: 600, marginTop: 6 }}
+            onClick={() => navigate('/generar-clave-privada')}
+          >
+            Generar nueva clave privada
+          </button>
+        </div>
         <style>{`
           @keyframes fadeInDown {
             from { opacity: 0; transform: translateY(-24px); }

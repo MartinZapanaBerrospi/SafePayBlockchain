@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ResponsiveContainer,
   LineChart,
@@ -95,10 +95,11 @@ export default function Dashboard() {
           <div className="dashboard-section">
             <h3>Mapa de ubicaciones de transacciones</h3>
             <div style={{ width: '100%', height: 350 }}>
+              {/* @ts-ignore */}
               <MapContainer center={[-9.19, -75.0152]} zoom={5} style={{ width: '100%', height: 350 }} scrollWheelZoom={true}>
                 <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  {...({ attribution: '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors' } as any)}
                 />
                 {indicadores?.ubicaciones?.length ? indicadores.ubicaciones.map((u: any, idx: number) => (
                   <Marker key={idx} position={[u.latitud, u.longitud]}>
@@ -125,7 +126,7 @@ export default function Dashboard() {
                     outerRadius={80}
                     label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                   >
-                    {(indicadores?.solicitudes_estado || []).map((entry: any, idx: number) => (
+                    {(indicadores?.solicitudes_estado || []).map((_: any, idx: number) => (
                       <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
                     ))}
                   </Pie>
