@@ -645,7 +645,9 @@ def chatbot():
             if usuario and hasattr(usuario, 'solicitudes') else "No se encontraron solicitudes."
         ),
         'ayuda': lambda usuario: (
-            'Puedo ayudarte a: consultar saldo, ver tus últimas transacciones, ver tus tarjetas registradas, ver tus solicitudes de pago o pedir ayuda.'
+            "Puedes consultarme sobre tu saldo, tus transacciones recientes, tarjetas registradas, solicitudes de pago o cualquier otra gestión de tu cuenta. ¿En qué te gustaría que te ayude?"
+            if usuario else
+            "Para acceder a todas las funciones de SafePay, por favor inicia sesión o regístrate. Si necesitas información sobre el registro, recuperación de contraseña o cómo funciona la plataforma, pregúntame."
         ),
         'info_general': lambda usuario: (
             'SafePay es una plataforma de pagos y transferencias seguras basada en tecnología blockchain. Permite enviar, recibir y gestionar dinero de forma transparente, rápida y confiable.'

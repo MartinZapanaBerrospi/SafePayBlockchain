@@ -24,7 +24,9 @@ RESPUESTAS_DINAMICAS = {
         if usuario and hasattr(usuario, 'solicitudes') else "No se encontraron solicitudes."
     ),
     'ayuda': lambda usuario: (
-        'Puedo ayudarte a: consultar saldo, ver tus últimas transacciones, ver tus tarjetas registradas, ver tus solicitudes de pago o pedir ayuda.'
+        "Puedes consultarme sobre tu saldo, tus transacciones recientes, tarjetas registradas, solicitudes de pago o cualquier otra gestión de tu cuenta. ¿En qué te gustaría que te ayude?"
+        if usuario else
+        "Para acceder a todas las funciones de SafePay, por favor inicia sesión o regístrate. Si necesitas información sobre el registro, recuperación de contraseña o cómo funciona la plataforma, pregúntame."
     ),
 }
 
@@ -93,6 +95,7 @@ def chatbot():
     if intencion_llm.lower() == 'despedida':
         return jsonify({'respuesta': '¡Hasta luego! Si tienes más preguntas, aquí estaré.'})
     if intencion_llm.lower() == 'ayuda':
+        # Siempre usar la lambda actualizada para respuesta contextual
         return jsonify({'respuesta': RESPUESTAS_DINAMICAS['ayuda'](usuario)})
     if intencion_llm.lower() == 'información general':
         return jsonify({'respuesta': 'SafePay es una plataforma de pagos seguros y transferencias con tecnología blockchain. Puedes registrarte, consultar tu saldo, ver tu historial y más.'})
