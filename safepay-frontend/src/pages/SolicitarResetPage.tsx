@@ -35,11 +35,21 @@ export default function SolicitarResetPage() {
             Correo electrónico
             <input type="email" value={correo} onChange={e => setCorreo(e.target.value)} required />
           </label>
-          {error && <div style={{ color: '#e53935', fontWeight: 500 }}>{error}</div>}
-          <button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Enviando...' : 'Enviar instrucciones'}</button>
+          {error && <div style={{ color: '#e53935', fontWeight: 500, marginTop: 8 }}>{error}</div>}
+          <button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Enviando...' : 'Enviar correo de recuperación'}</button>
         </form>
         {success && (
-          <div style={{ marginTop: 24, color: '#2563eb', fontWeight: 600, textAlign: 'center' }}>{success}</div>
+          <div style={{
+            marginTop: 24,
+            background: '#e3f2fd',
+            border: '1.5px solid #2563eb',
+            borderRadius: 10,
+            padding: 16,
+            color: '#2563eb',
+            fontWeight: 700,
+            textAlign: 'center',
+            fontSize: 16
+          }}>{success}</div>
         )}
       </div>
     </div>

@@ -840,16 +840,17 @@ def solicitar_reset():
         return jsonify({'mensaje': 'Correo requerido'}), 400
     usuario = Usuario.query.filter(db.func.lower(Usuario.correo) == correo.lower()).first()
     if not usuario:
-        return jsonify({'mensaje': 'Si el correo está registrado, recibirás un email con instrucciones.'}), 200
+        return jsonify({'mensaje': 'El correo no se encuentra registrado.'}), 404
     # Generar token seguro
     token = secrets.token_urlsafe(32)
     usuario.reset_token = token
     db.session.commit()
     # Enviar email
+    frontend_url = current_app.config.get('FRONTEND_URL', 'http://localhost:5173')
     msg = Message('Recupera tu contraseña SafePay', recipients=[correo])
-    msg.body = f"Hola,\n\nPara restablecer tu contraseña haz clic en el siguiente enlace:\n\nhttps://tusitio.com/reset-password?token={token}\n\nSi no solicitaste esto, ignora este mensaje."
+    msg.body = f"Hola,\n\nPara restablecer tu contraseña haz clic en el siguiente enlace:\n\n{frontend_url}/reset-password?token={token}\n\nSi no solicitaste esto, ignora este mensaje."
     mail.send(msg)
-    return jsonify({'mensaje': 'Si el correo está registrado, recibirás un email con instrucciones.'}), 200
+    return jsonify({'mensaje': 'Se han enviado las instrucciones de recuperación a tu correo.'}), 200
 
 @bp.route('/usuarios/reset-password', methods=['POST'])
 def reset_password():
