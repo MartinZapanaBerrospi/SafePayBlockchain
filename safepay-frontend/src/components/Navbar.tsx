@@ -41,7 +41,7 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className="navbar navbar-pro">
+    <nav className="navbar navbar-pro" style={{ position: 'fixed', top: 0, left: 0, width: '100%', zIndex: 100, boxShadow: '0 2px 16px #00336618' }}>
       <div className="navbar-left">
         <span
           className="navbar-logo"
@@ -94,9 +94,12 @@ const Navbar: React.FC = () => {
             transition: 'background 0.2s, color 0.2s',
             outline: 'none',
             whiteSpace: 'nowrap',
+            // Contraste extra para fondo oscuro o claro
+            textShadow: mode === 'dark' ? '0 1px 2px #000, 0 0 2px #000' : '0 1px 2px #fff, 0 0 2px #fff',
+            filter: 'drop-shadow(0 1px 2px #0001)',
           }}
         >
-          <span style={{ marginRight: 5, fontSize: 17 }}>🔑</span> Generar clave
+          <span style={{ marginRight: 5, fontSize: 17, color: 'inherit' }}>🔑</span> <span style={{ color: 'inherit' }}>Generar clave</span>
         </button>
         {nombre && <span className="navbar-user" style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 15 }}>👤 {nombre}</span>}
         {nombre && (

@@ -49,7 +49,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="dashboard-panel fade-in">
+    <div className="dashboard-panel fade-in" style={{ paddingTop: 126 }}>
       <h2>Dashboard de SafePay</h2>
       {loading ? (
         <div>Cargando indicadores...</div>

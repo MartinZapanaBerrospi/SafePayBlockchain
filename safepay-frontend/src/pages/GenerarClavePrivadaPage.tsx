@@ -4,7 +4,7 @@ import { generarNuevaClavePrivada, obtenerPreguntaSecreta } from '../services/re
 import ThemeSwitch from '../components/ThemeSwitch';
 import { useTheme } from '../theme/ThemeProvider';
 
-export default function RecuperarClavePage() {
+export default function GenerarClavePrivadaPage() {
   const [pregunta, setPregunta] = useState('');
   const [respuesta, setRespuesta] = useState('');
   const [clavePrivadaCifrada, setClavePrivadaCifrada] = useState<string | null>(null);
@@ -60,7 +60,18 @@ export default function RecuperarClavePage() {
       <div style={{ position: 'absolute', top: 18, right: 24, zIndex: 10 }}>
         <ThemeSwitch />
       </div>
-      <div className="login-container card fade-in" style={{ maxWidth: 440, margin: '2.5rem auto', background: 'var(--color-card)', borderRadius: 16, boxShadow: mode === 'dark' ? '0 2px 16px #0008' : '0 2px 12px #2563eb22', padding: 36, border: '1.5px solid var(--color-border)' }}>
+      <div className="login-container card fade-in" style={{
+        maxWidth: 480,
+        margin: '6vh auto 6vh auto',
+        background: 'var(--color-card)',
+        borderRadius: 20,
+        boxShadow: mode === 'dark' ? '0 4px 32px #0008' : '0 4px 24px #2563eb22',
+        padding: '2.5em 2em 2em 2em',
+        border: '1.5px solid var(--color-border)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+      }}>
         <h2 style={{ textAlign: 'center', color: 'var(--color-primary)', fontWeight: 900, fontSize: 28, marginBottom: 18 }}>Generar nueva clave privada</h2>
         <form onSubmit={handleSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           <label style={{ fontWeight: 600, color: 'var(--color-text)' }}>
@@ -140,8 +151,8 @@ export default function RecuperarClavePage() {
           </div>
         )}
         <p style={{ textAlign: 'center', marginTop: 36, marginBottom: 0 }}>
-          <button className="link" onClick={() => navigate('/login')} style={{ color: 'var(--color-primary)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontWeight: 700, fontSize: 16, padding: '10px 24px', borderRadius: 8, margin: '0 auto', display: 'inline-block' }}>
-            Volver a iniciar sesión
+          <button className="link" onClick={() => navigate('/inicio')} style={{ color: 'var(--color-primary)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontWeight: 700, fontSize: 16, padding: '10px 24px', borderRadius: 8, margin: '0 auto', display: 'inline-block' }}>
+            Volver a inicio
           </button>
         </p>
       </div>

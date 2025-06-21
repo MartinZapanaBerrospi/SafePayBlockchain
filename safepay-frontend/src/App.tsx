@@ -7,9 +7,9 @@ import TransferenciaUsuario from './pages/TransferenciaUsuario';
 import Dashboard from './pages/Dashboard/Dashboard';
 import Navbar from './components/Navbar';
 import MiCuenta from './pages/MiCuenta';
-import RecuperarClavePage from './pages/RecuperarClavePage';
 import SolicitarResetPage from './pages/SolicitarResetPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import GenerarClavePrivadaPage from './pages/GenerarClavePrivadaPage';
 
 function AppRoutes() {
   const location = useLocation();
@@ -29,7 +29,7 @@ function AppRoutes() {
         <Route path="/mi-tarjeta" element={<Navigate to="/mi-cuenta" />} />
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="*" element={<Navigate to="/login" />} />
-        <Route path="/generar-clave-privada" element={<RecuperarClavePage />} />
+        <Route path="/generar-clave-privada" element={<GenerarClavePrivadaPage />} />
         <Route path="/solicitar-reset" element={<SolicitarResetPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
       </Routes>

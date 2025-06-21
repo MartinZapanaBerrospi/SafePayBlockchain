@@ -98,10 +98,29 @@ export default function Inicio() {
           <br />
           <button
             className="link"
-            style={{ color: '#2563eb', textDecoration: 'underline', fontWeight: 600, marginTop: 6 }}
+            style={{ 
+              color: 'var(--color-primary)', 
+              textDecoration: 'underline', 
+              fontWeight: 600, 
+              marginTop: 6,
+              background: 'none',
+              border: 'none',
+              fontSize: '1em',
+              cursor: 'pointer',
+              transition: 'color 0.2s',
+              // Adaptar color de texto según tema
+              filter: 'drop-shadow(0 1px 2px #0001)',
+            }}
             onClick={() => navigate('/generar-clave-privada')}
           >
-            Generar nueva clave privada
+            <span className="clave-link-text" style={{
+              color: 'inherit',
+              transition: 'color 0.2s',
+              // Contraste extra para modo oscuro
+              textShadow: '0 1px 2px var(--color-bg), 0 0 2px var(--color-bg)'
+            }}>
+              Generar nueva clave privada
+            </span>
           </button>
         </div>
         <style>{`
