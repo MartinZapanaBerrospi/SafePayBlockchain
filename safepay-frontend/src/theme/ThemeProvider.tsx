@@ -27,18 +27,33 @@ const darkTheme = {
   error: '#f87171',
 };
 
-const ThemeContext = createContext({
+// Definir el tipo del contexto para evitar errores de tipado
+interface ThemeContextType {
+  theme: typeof lightTheme;
+  mode: 'light' | 'dark';
+  setMode: (mode: 'light' | 'dark') => void;
+}
+
+const ThemeContext = createContext<ThemeContextType>({
   theme: lightTheme,
   mode: 'light',
-  setMode: (mode: 'light' | 'dark') => {},
+  setMode: () => {},
 });
 
 export const useTheme = () => useContext(ThemeContext);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [mode, setMode] = useState<'light' | 'dark'>(
-    window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-  );
+  const [mode, setModeState] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('theme-mode');
+    if (saved === 'light' || saved === 'dark') return saved;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
+
+  // Al cambiar el modo, guardar en localStorage
+  const setMode = (newMode: 'light' | 'dark') => {
+    setModeState(newMode);
+    localStorage.setItem('theme-mode', newMode);
+  };
 
   useEffect(() => {
     const root = document.documentElement;
